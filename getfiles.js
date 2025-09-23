@@ -1,0 +1,186 @@
+// =============================================================================
+// Combine Files from Directory Script
+// =============================================================================
+//
+// Author: Gemini
+// Description: This Node.js script recursively finds all files within a
+//              specified directory and its subdirectories, reads their
+//              contents, and concatenates them into a single output file.
+//              Each file's content is clearly marked with a header and footer.
+//
+// Instructions:
+// 1. Save this code as a JavaScript file (e.g., `combine.js`).
+// 2. Make sure you have Node.js installed on your system.
+// 3. Open your terminal or command prompt.
+// 4. Navigate to the directory where you saved this file.
+// 5. Run the script using the command: `node combine.js`
+//
+// =============================================================================
+
+// --- CONFIGURATION ---
+// Important: Adjust these paths before running the script.
+
+// The directory you want to scan for files.
+// Use '.' for the current directory.
+// Example for Windows: 'C:\\Users\\YourUser\\Projects\\MyProject'
+// Example for macOS/Linux: '/home/youruser/projects/myproject'
+const SOURCE_DIRECTORY = './';
+
+// The name of the file where all the code will be saved.
+// This file will be created in the same directory where you run the script.
+const OUTPUT_FILE = 'combined_code.txt';
+
+// A list of directories and files to ignore.
+// This is crucial for avoiding large, irrelevant, or sensitive folders/files.
+// The script will skip any file or directory whose path includes these strings.
+const IGNORE_LIST = [
+  'node_modules', // Often very large and not source code
+  '.git', // Git version control folder
+  '.vscode', // VS Code editor configuration
+  'dist', // Often contains bundled/minified output files
+  'build', // Common name for build output
+  OUTPUT_FILE, // Prevents the script from reading its own output
+  'getfiles.js',
+  'getfiles',
+  'restorefiles.js',
+  'restorefiles',
+  'Dockerfile',
+  '.spec.ts',
+  '.e2e-spec.ts',
+];
+
+// --- SCRIPT ---
+
+// Import necessary Node.js modules
+const fs = require('fs');
+const path = require('path');
+
+/**
+ * Checks if a given file or directory path should be ignored.
+ * @param {string} filePath - The full path to the file or directory.
+ * @returns {boolean} - True if the path should be ignored, false otherwise.
+ */
+const shouldIgnore = (filePath) => {
+  return IGNORE_LIST.some((ignoredItem) => {
+    // Check if the path contains an ignored directory/file name (e.g., '/node_modules/'),
+    // or if the file path ends with an ignored pattern (e.g., 'my-test.spec.ts').
+    return (
+      filePath.includes(path.sep + ignoredItem) ||
+      filePath.endsWith(ignoredItem)
+    );
+  });
+};
+
+/**
+ * Recursively finds all file paths in a given directory.
+ * @param {string} dirPath - The path to the directory to start scanning from.
+ * @returns {string[]} - An array of full file paths.
+ */
+const getAllFilePaths = (dirPath) => {
+  let filePaths = [];
+
+  try {
+    const items = fs.readdirSync(dirPath);
+
+    for (const item of items) {
+      const fullPath = path.join(dirPath, item);
+
+      // fs.statSync provides details about the item (file, directory, etc.)
+      const stat = fs.statSync(fullPath);
+
+      if (stat.isDirectory()) {
+        if (shouldIgnore(fullPath + path.sep)) {
+          // console.log(`Ignoring directory: ${fullPath}`); // Uncomment for debugging
+          continue;
+        }
+        // If it's a directory, recursively call this function
+        // and concatenate the results to our array.
+        filePaths = filePaths.concat(getAllFilePaths(fullPath));
+      } else if (stat.isFile()) {
+        if (shouldIgnore(fullPath)) {
+          // console.log(`Ignoring file: ${fullPath}`); // Uncomment for debugging
+          continue;
+        }
+        // If it's a file, add its path to the array.
+        filePaths.push(fullPath);
+      }
+    }
+  } catch (error) {
+    console.error(`Error reading directory ${dirPath}:`, error.message);
+  }
+
+  return filePaths;
+};
+
+/**
+ * Main function to execute the script logic.
+ */
+const main = () => {
+  console.log('--- Starting File Combination Script ---');
+
+  const sourcePath = path.resolve(SOURCE_DIRECTORY);
+
+  // 1. Check if the source directory exists
+  if (!fs.existsSync(sourcePath)) {
+    console.error(`Error: Source directory not found at '${sourcePath}'`);
+    console.log('Please check the SOURCE_DIRECTORY variable in the script.');
+    return;
+  }
+
+  console.log(`Scanning directory: ${sourcePath}`);
+
+  // 2. Get all file paths recursively
+  const allFiles = getAllFilePaths(sourcePath);
+
+  if (allFiles.length === 0) {
+    console.log('No files found to combine.');
+    return;
+  }
+
+  console.log(`Found ${allFiles.length} files to combine.`);
+
+  let combinedContent = `// This file was auto-generated by the Combine Files Script on ${new Date().toUTCString()}\n`;
+  combinedContent += `// Source Directory: ${sourcePath}\n`;
+  combinedContent += `// Total Files: ${allFiles.length}\n\n`;
+
+  // 3. Read each file and append its content
+  for (const filePath of allFiles) {
+    try {
+      const relativePath = path.relative(process.cwd(), filePath);
+      console.log(`  -> Processing: ${relativePath}`);
+
+      const fileContent = fs.readFileSync(filePath, 'utf8');
+
+      combinedContent +=
+        '==============================================================================\n';
+      combinedContent += `// START OF FILE: ${relativePath}\n`;
+      combinedContent +=
+        '==============================================================================\n\n';
+      combinedContent += fileContent;
+      combinedContent += '\n\n';
+      combinedContent += `// ==============================================================================\n`;
+      combinedContent += `// END OF FILE: ${relativePath}\n`;
+      combinedContent += `// ==============================================================================\n\n\n`;
+    } catch (error) {
+      console.error(`Could not read file ${filePath}:`, error.message);
+    }
+  }
+
+  // 4. Write the final combined content to the output file
+  try {
+    fs.writeFileSync(OUTPUT_FILE, combinedContent);
+    console.log(`\n--- Success! ---`);
+    console.log(
+      `All files have been combined into '${path.resolve(OUTPUT_FILE)}'`,
+    );
+  } catch (error) {
+    console.error(`\n--- Error! ---`);
+    console.error(
+      `Failed to write to output file '${OUTPUT_FILE}':`,
+      error.message,
+    );
+  }
+};
+
+// Run the main function
+main();
