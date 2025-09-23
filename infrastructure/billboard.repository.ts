@@ -14,6 +14,11 @@ export class BillboardRepository implements IBillboardRepository {
     private readonly billboardModel: Model<BillboardsDocument>,
   ) {}
 
+  /**
+   * Creates a new billboard.
+   * @param billboard - The billboard data.
+   * @returns The created billboard.
+   */
   async create(
     billboard: Partial<BillboardsEntity>,
   ): Promise<BillboardsEntity> {
@@ -28,6 +33,12 @@ export class BillboardRepository implements IBillboardRepository {
     return saved.toObject();
   }
 
+  /**
+   * Finds billboards for a list of organizations.
+   * @param organizationIds - The list of organization IDs.
+   * @param includeWildcard - Whether to include wildcard billboards.
+   * @returns A list of billboards.
+   */
   async findForOrganizations(
     organizationIds: string[],
     includeWildcard = true,
@@ -37,7 +48,6 @@ export class BillboardRepository implements IBillboardRepository {
       $or: [],
     };
 
-    // Include organization-specific billboards
     if (organizationIds.length > 0) {
       query.$or.push({
         isWildcard: false,
@@ -45,14 +55,12 @@ export class BillboardRepository implements IBillboardRepository {
       });
     }
 
-    // Include wildcard billboards if requested
     if (includeWildcard) {
       query.$or.push({
         isWildcard: true,
       });
     }
 
-    // If no conditions, return empty array
     if (query.$or.length === 0) {
       return [];
     }
@@ -66,6 +74,11 @@ export class BillboardRepository implements IBillboardRepository {
     return billboards;
   }
 
+  /**
+   * Finds a billboard by its ID.
+   * @param id - The billboard ID.
+   * @returns The billboard, or null if not found.
+   */
   async findById(id: string): Promise<BillboardsEntity | null> {
     const billboard = await this.billboardModel
       .findOne({ _id: id, isDeleted: false })
@@ -75,6 +88,12 @@ export class BillboardRepository implements IBillboardRepository {
     return billboard;
   }
 
+  /**
+   * Updates a billboard by its ID.
+   * @param id - The billboard ID.
+   * @param updates - The updates to apply.
+   * @returns The updated billboard, or null if not found.
+   */
   async updateById(
     id: string,
     updates: Partial<BillboardsEntity>,
@@ -90,6 +109,12 @@ export class BillboardRepository implements IBillboardRepository {
     return updated;
   }
 
+  /**
+   * Deletes a billboard by its ID (soft delete).
+   * @param id - The billboard ID.
+   * @param deletedBy - The ID of the user who deleted the billboard.
+   * @returns True if the billboard was deleted, false otherwise.
+   */
   async deleteById(id: string, deletedBy: string): Promise<boolean> {
     const result = await this.billboardModel
       .updateOne(
@@ -107,6 +132,12 @@ export class BillboardRepository implements IBillboardRepository {
     return result.matchedCount > 0;
   }
 
+  /**
+   * Deletes multiple billboards by their IDs (soft delete).
+   * @param ids - The billboard IDs.
+   * @param deletedBy - The ID of the user who deleted the billboards.
+   * @returns The number of deleted billboards.
+   */
   async deleteByIds(ids: string[], deletedBy: string): Promise<number> {
     const result = await this.billboardModel
       .updateMany(
@@ -124,6 +155,12 @@ export class BillboardRepository implements IBillboardRepository {
     return result.matchedCount;
   }
 
+  /**
+   * Finds all active billboards with pagination.
+   * @param limit - The number of items to return.
+   * @param offset - The number of items to skip.
+   * @returns A list of billboards and the total count.
+   */
   async findAllActive(
     limit = 50,
     offset = 0,
@@ -142,6 +179,11 @@ export class BillboardRepository implements IBillboardRepository {
     return { items, total };
   }
 
+  /**
+   * Finds all billboards created by a specific user.
+   * @param createdBy - The ID of the user.
+   * @returns A list of billboards.
+   */
   async findByCreatedBy(createdBy: string): Promise<BillboardsEntity[]> {
     const billboards = await this.billboardModel
       .find({ createdBy, isDeleted: false })
@@ -152,6 +194,11 @@ export class BillboardRepository implements IBillboardRepository {
     return billboards;
   }
 
+  /**
+   * Checks if a billboard exists.
+   * @param id - The billboard ID.
+   * @returns True if the billboard exists, false otherwise.
+   */
   async exists(id: string): Promise<boolean> {
     const count = await this.billboardModel
       .countDocuments({ _id: id, isDeleted: false })
@@ -160,6 +207,10 @@ export class BillboardRepository implements IBillboardRepository {
     return count > 0;
   }
 
+  /**
+   * Generates a new ID for a billboard.
+   * @returns A new billboard ID.
+   */
   private generateId(): string {
     return `billboard-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
   }

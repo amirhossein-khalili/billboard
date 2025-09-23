@@ -1,4 +1,3 @@
-// application/billboards.service.ts
 import { Injectable, Logger, Inject } from "@nestjs/common";
 import { CommandBus, EventBus, QueryBus } from "@nestjs/cqrs";
 import { AmqpConnection } from "@golevelup/nestjs-rabbitmq";
@@ -44,8 +43,49 @@ export class BillboardsService extends BaseService {
     return this.getUserId(meta) ?? "system";
   }
 
-  // Returns only the last message for the org (wildcard included).
-  // If the user has dismissed that last message, returns null (empty state).
+  /**
+   * Returns only the last message for the org (wildcard included).
+   * If the user has dismissed that last message, returns null (empty state).
+   * @param data - The data transfer object for getting billboards.
+   * @param meta - The metadata.
+   * @returns The latest billboard or null.
+   */
+  /**
+   * Returns all active billboards.
+   * @param meta - The metadata.
+   * @returns A list of all active billboards.
+   */
+  async getAllBillboards(meta: IMetadata): Promise<IQueryResult> {
+    const { items, total } = await this.billboardRepo.findAllActive();
+    return {
+      status: true,
+      data: items,
+      meta: { ...meta, total } as IMetadata,
+    };
+  }
+
+  /**
+   * Returns a billboard by its ID.
+   * @param id - The ID of the billboard.
+   * @param meta - The metadata.
+   * @returns The billboard, or null if not found.
+   */
+  async getBillboardById(id: string, meta: IMetadata): Promise<IQueryResult> {
+    const billboard = await this.billboardRepo.findById(id);
+    return {
+      status: !!billboard,
+      data: billboard,
+      meta: meta as IMetadata,
+    };
+  }
+
+  /**
+   * Returns only the last message for the org (wildcard included).
+   * If the user has dismissed that last message, returns null (empty state).
+   * @param data - The data transfer object for getting billboards.
+   * @param meta - The metadata.
+   * @returns The latest billboard or null.
+   */
   async getBillboards(
     data: GetBillboardsDto,
     meta: IMetadata
@@ -97,7 +137,12 @@ export class BillboardsService extends BaseService {
     };
   }
 
-  // Import billboards from Excel
+  /**
+   * Import billboards from Excel
+   * @param fileBuffer - The buffer of the Excel file.
+   * @param meta - The metadata.
+   * @returns The result of the import operation.
+   */
   async importFromExcel(
     fileBuffer: Buffer,
     meta: IMetadata
@@ -144,7 +189,12 @@ export class BillboardsService extends BaseService {
     };
   }
 
-  // Admin delete (soft)
+  /**
+   * Admin delete (soft)
+   * @param id - The ID of the billboard to delete.
+   * @param meta - The metadata.
+   * @returns The result of the delete operation.
+   */
   async deleteBillboard(id: string, meta: IMetadata): Promise<IQueryResult> {
     const adminId = this.getAdminId(meta);
     const ok = await this.billboardRepo.deleteById(id, adminId);
@@ -159,7 +209,13 @@ export class BillboardsService extends BaseService {
     };
   }
 
-  // User dismiss (close) the latest message (by id)
+  /**
+   * User dismiss (close) the latest message (by id)
+   * @param orgId - The organization ID.
+   * @param messageId - The message ID.
+   * @param meta - The metadata.
+   * @returns The result of the dismiss operation.
+   */
   async dismissBillboard(
     orgId: string,
     messageId: string,

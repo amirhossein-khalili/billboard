@@ -1,4 +1,3 @@
-// interface/billboards.controller.ts
 import {
   Controller,
   Get,
@@ -28,6 +27,42 @@ export class BillboardController extends BaseController {
     super();
   }
 
+  /**
+   * Returns the latest active billboard for a given organization.
+   * If the user has dismissed the latest billboard, it returns null.
+   */
+  /**
+   * Returns all active billboards.
+   */
+  @Get('/')
+  @SwaggerGet('return all billboards', true)
+  async getAllBillboards(@Headers() headers: any, @Request() req: any) {
+    const meta = await this.getMetadata({}, headers, req, {
+      pagination: false,
+    });
+    return this.svc.getAllBillboards(meta);
+  }
+
+  /**
+   * Returns a billboard by its ID.
+   */
+  @Get('/:id')
+  @SwaggerGet('return a billboard by id', false)
+  async getBillboardById(
+    @Param('id') id: string,
+    @Headers() headers: any,
+    @Request() req: any,
+  ) {
+    const meta = await this.getMetadata({}, headers, req, {
+      pagination: false,
+    });
+    return this.svc.getBillboardById(id, meta);
+  }
+
+  /**
+   * Returns the latest active billboard for a given organization.
+   * If the user has dismissed the latest billboard, it returns null.
+   */
   @Get('/:organizationId')
   @RpcQuery('billboards', 'billboards', 'get_billboards')
   @SwaggerGet('return a billboards', false)
@@ -43,6 +78,10 @@ export class BillboardController extends BaseController {
     );
   }
 
+  /**
+   * Imports billboards from an Excel file.
+   * The Excel file should have columns for organization ID and message.
+   */
   @Post('/import')
   @UseInterceptors(FileInterceptor('file'))
   @ApiConsumes('multipart/form-data')
@@ -64,6 +103,10 @@ export class BillboardController extends BaseController {
     return this.svc.importFromExcel(file.buffer, meta);
   }
 
+  /**
+   * Deletes a billboard by its ID.
+   * This is a soft delete.
+   */
   @Delete('/:id')
   async deleteBillboard(
     @Param('id') id: string,
@@ -76,6 +119,9 @@ export class BillboardController extends BaseController {
     return this.svc.deleteBillboard(id, meta);
   }
 
+  /**
+   * Allows a user to dismiss a billboard for a specific organization.
+   */
   @Post('/:organizationId/dismiss/:id')
   async dismissBillboard(
     @Param('organizationId') organizationId: string,

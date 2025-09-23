@@ -26,8 +26,8 @@ class TestAuthGuard implements CanActivate {
     const url: string = req.url || '';
 
     const requiresAdmin =
-      (method === 'POST' && url.startsWith('/billboard/items/upload')) ||
-      (method === 'DELETE' && url.startsWith('/billboard/items/'));
+      (method === 'POST' && url.startsWith('/api/v1/billboards/import')) ||
+      (method === 'DELETE' && url.startsWith('/api/v1/billboards/'));
 
     if (requiresAdmin && role !== 'admin') {
       throw new ForbiddenException();
@@ -93,7 +93,7 @@ describe('Billboard E2E (External Mongo)', () => {
       ]);
 
       const res = await asAdmin(
-        request(httpServer).post('/billboard/items/upload'),
+        request(httpServer).post('/api/v1/billboards/import'),
       )
         .attach('file', buf, {
           filename: 'upload.xlsx',
@@ -121,8 +121,8 @@ describe('Billboard E2E (External Mongo)', () => {
 
       const resA = await asUser(
         request(httpServer)
-          .get('/billboard/items')
-          .query({ orgId: 'ORG_A', userId: 'U1' }),
+          .get('/api/v1/billboards/ORG_A')
+          .query({ userId: 'U1' }),
       ).expect(200);
 
       expect(resA.body).toEqual(
@@ -139,7 +139,7 @@ describe('Billboard E2E (External Mongo)', () => {
       const buf = makeXlsx([['*', 'Global notice']]);
 
       const res = await asAdmin(
-        request(httpServer).post('/billboard/items/upload'),
+        request(httpServer).post('/api/v1/billboards/import'),
       )
         .attach('file', buf, {
           filename: 'upload.xlsx',
@@ -154,8 +154,8 @@ describe('Billboard E2E (External Mongo)', () => {
       for (const orgId of ['ORG_A', 'ORG_B', 'ORG_C']) {
         const r = await asUser(
           request(httpServer)
-            .get('/billboard/items')
-            .query({ orgId, userId: 'U1' }),
+            .get(`/api/v1/billboards/${orgId}`)
+            .query({ userId: 'U1' }),
         ).expect(200);
         expect(r.body.orgId).toBe(orgId);
         expect(r.body.markdown).toBe('Global notice');
@@ -169,14 +169,14 @@ describe('Billboard E2E (External Mongo)', () => {
         ['ORG_A', 'Second'],
       ]);
 
-      await asAdmin(request(httpServer).post('/billboard/items/upload'))
+      await asAdmin(request(httpServer).post('/api/v1/billboards/import'))
         .attach('file', buf, { filename: 'upload.xlsx' })
         .expect(201);
 
       const res = await asUser(
         request(httpServer)
-          .get('/billboard/items')
-          .query({ orgId: 'ORG_A', userId: 'U1' }),
+          .get('/api/v1/billboards/ORG_A')
+          .query({ userId: 'U1' }),
       ).expect(200);
 
       expect(res.body.markdown).toBe('Second');
@@ -192,21 +192,21 @@ describe('Billboard E2E (External Mongo)', () => {
       ];
       const buf = makeXlsx(rows);
 
-      await asAdmin(request(httpServer).post('/billboard/items/upload'))
+      await asAdmin(request(httpServer).post('/api/v1/billboards/import'))
         .attach('file', buf, { filename: 'upload.xlsx' })
         .expect(201);
 
       const resA = await asUser(
         request(httpServer)
-          .get('/billboard/items')
-          .query({ orgId: 'ORG_A', userId: 'U1' }),
+          .get('/api/v1/billboards/ORG_A')
+          .query({ userId: 'U1' }),
       ).expect(200);
       expect(resA.body.markdown).toBe('Global 2');
 
       const resB = await asUser(
         request(httpServer)
-          .get('/billboard/items')
-          .query({ orgId: 'ORG_B', userId: 'U1' }),
+          .get('/api/v1/billboards/ORG_B')
+          .query({ userId: 'U1' }),
       ).expect(200);
       expect(resB.body.markdown).toBe('Global 2');
     });
@@ -219,7 +219,7 @@ describe('Billboard E2E (External Mongo)', () => {
       ]);
 
       const res = await asAdmin(
-        request(httpServer).post('/billboard/items/upload'),
+        request(httpServer).post('/api/v1/billboards/import'),
       )
         .attach('file', buf, { filename: 'upload.xlsx' })
         .expect(201);
@@ -243,7 +243,7 @@ describe('Billboard E2E (External Mongo)', () => {
       ]);
 
       const res1 = await asAdmin(
-        request(httpServer).post('/billboard/items/upload'),
+        request(httpServer).post('/api/v1/billboards/import'),
       )
         .attach('file', buf1, { filename: 'upload.xlsx' })
         .expect(201);
@@ -259,7 +259,7 @@ describe('Billboard E2E (External Mongo)', () => {
       const bufMissing = makeCustomAoAXlsx([['Org ID', 'Message'], ['ORG_A']]);
 
       const res2 = await asAdmin(
-        request(httpServer).post('/billboard/items/upload'),
+        request(httpServer).post('/api/v1/billboards/import'),
       )
         .attach('file', bufMissing, { filename: 'upload.xlsx' })
         .expect(201);
@@ -273,7 +273,7 @@ describe('Billboard E2E (External Mongo)', () => {
 
       const txt = Buffer.from('not an excel file', 'utf-8');
       const res3 = await asAdmin(
-        request(httpServer).post('/billboard/items/upload'),
+        request(httpServer).post('/api/v1/billboards/import'),
       )
         .attach('file', txt, {
           filename: 'upload.txt',
@@ -299,7 +299,7 @@ describe('Billboard E2E (External Mongo)', () => {
       await seedOrganizations(db, ['ORG_A']);
       const buf = makeXlsx([['ORG_A', 'Hi']]);
 
-      await asUser(request(httpServer).post('/billboard/items/upload'))
+      await asUser(request(httpServer).post('/api/v1/billboards/import'))
         .attach('file', buf, { filename: 'upload.xlsx' })
         .expect(403);
     });
@@ -311,8 +311,8 @@ describe('Billboard E2E (External Mongo)', () => {
 
       await asUser(
         request(httpServer)
-          .get('/billboard/items')
-          .query({ orgId: 'ORG_A', userId: 'U1' }),
+          .get('/api/v1/billboards/ORG_A')
+          .query({ userId: 'U1' }),
       ).expect(204);
     });
 
@@ -321,7 +321,7 @@ describe('Billboard E2E (External Mongo)', () => {
       const buf = makeXlsx([['ORG_A', 'Hello']]);
 
       const res = await asAdmin(
-        request(httpServer).post('/billboard/items/upload'),
+        request(httpServer).post('/api/v1/billboards/import'),
       )
         .attach('file', buf, { filename: 'upload.xlsx' })
         .expect(201);
@@ -339,14 +339,14 @@ describe('Billboard E2E (External Mongo)', () => {
 
       await asUser(
         request(httpServer)
-          .get('/billboard/items')
-          .query({ orgId: 'ORG_A', userId: 'U1' }),
+          .get('/api/v1/billboards/ORG_A')
+          .query({ userId: 'U1' }),
       ).expect(204);
 
       const resU2 = await asUser(
         request(httpServer)
-          .get('/billboard/items')
-          .query({ orgId: 'ORG_A', userId: 'U2' }),
+          .get('/api/v1/billboards/ORG_A')
+          .query({ userId: 'U2' }),
       ).expect(200);
       expect(resU2.body.markdown).toBe('Hello');
     });
@@ -356,7 +356,7 @@ describe('Billboard E2E (External Mongo)', () => {
       const buf = makeXlsx([['ORG_A', 'To delete']]);
 
       const res = await asAdmin(
-        request(httpServer).post('/billboard/items/upload'),
+        request(httpServer).post('/api/v1/billboards/import'),
       )
         .attach('file', buf, { filename: 'upload.xlsx' })
         .expect(201);
@@ -366,14 +366,19 @@ describe('Billboard E2E (External Mongo)', () => {
       );
       expect(created).toBeDefined();
 
-      await asAdmin(
-        request(httpServer).delete(`/billboard/items/${created.messageId}`),
-      ).expect(204);
+      const deleteRes = await asAdmin(
+        request(httpServer).delete(`/api/v1/billboards/${created.messageId}`),
+      ).expect(200);
+
+      expect(deleteRes.body.data).toEqual({
+        id: created.messageId,
+        deleted: true,
+      });
 
       await asUser(
         request(httpServer)
-          .get('/billboard/items')
-          .query({ orgId: 'ORG_A', userId: 'U1' }),
+          .get('/api/v1/billboards/ORG_A')
+          .query({ userId: 'U1' }),
       ).expect(204);
     });
 
@@ -382,14 +387,14 @@ describe('Billboard E2E (External Mongo)', () => {
       const md = 'Visit [docs](https://example.org/path?x=1)';
       const buf = makeXlsx([['ORG_A', md]]);
 
-      await asAdmin(request(httpServer).post('/billboard/items/upload'))
+      await asAdmin(request(httpServer).post('/api/v1/billboards/import'))
         .attach('file', buf, { filename: 'upload.xlsx' })
         .expect(201);
 
       const res = await asUser(
         request(httpServer)
-          .get('/billboard/items')
-          .query({ orgId: 'ORG_A', userId: 'U1' }),
+          .get('/api/v1/billboards/ORG_A')
+          .query({ userId: 'U1' }),
       ).expect(200);
 
       expect(res.body.markdown).toBe(md);
@@ -399,24 +404,62 @@ describe('Billboard E2E (External Mongo)', () => {
       await seedOrganizations(db, ['ORG_A']);
 
       const buf1 = makeXlsx([['ORG_A', 'One']]);
-      await asAdmin(request(httpServer).post('/billboard/items/upload'))
+      await asAdmin(request(httpServer).post('/api/v1/billboards/import'))
         .attach('file', buf1, { filename: 'u1.xlsx' })
         .expect(201);
 
       await new Promise((r) => setTimeout(r, 10));
 
       const buf2 = makeXlsx([['ORG_A', 'Two']]);
-      await asAdmin(request(httpServer).post('/billboard/items/upload'))
+      await asAdmin(request(httpServer).post('/api/v1/billboards/import'))
         .attach('file', buf2, { filename: 'u2.xlsx' })
         .expect(201);
 
       const res = await asUser(
         request(httpServer)
-          .get('/billboard/items')
-          .query({ orgId: 'ORG_A', userId: 'U1' }),
+          .get('/api/v1/billboards/ORG_A')
+          .query({ userId: 'U1' }),
       ).expect(200);
 
       expect(res.body.markdown).toBe('Two');
+    });
+  });
+
+  describe('Get All & Get By Id', () => {
+    it('should get all billboards', async () => {
+      await seedOrganizations(db, ['ORG_A', 'ORG_B']);
+      const buf = makeXlsx([
+        ['ORG_A', 'Hello A'],
+        ['ORG_B', 'Hello B'],
+      ]);
+      await asAdmin(request(httpServer).post('/api/v1/billboards/import'))
+        .attach('file', buf, { filename: 'upload.xlsx' })
+        .expect(201);
+
+      const res = await asUser(
+        request(httpServer).get('/api/v1/billboards'),
+      ).expect(200);
+
+      expect(res.body.data).toHaveLength(2);
+    });
+
+    it('should get a billboard by id', async () => {
+      await seedOrganizations(db, ['ORG_A']);
+      const buf = makeXlsx([['ORG_A', 'Hello A']]);
+      const importRes = await asAdmin(
+        request(httpServer).post('/api/v1/billboards/import'),
+      )
+        .attach('file', buf, { filename: 'upload.xlsx' })
+        .expect(201);
+
+      const billboardId = importRes.body.created[0].messageId;
+
+      const res = await asUser(
+        request(httpServer).get(`/api/v1/billboards/${billboardId}`),
+      ).expect(200);
+
+      expect(res.body.data).toHaveProperty('_id', billboardId);
+      expect(res.body.data).toHaveProperty('message', 'Hello A');
     });
   });
 
@@ -426,7 +469,7 @@ describe('Billboard E2E (External Mongo)', () => {
       const buf = makeXlsx([['ORG_A', 'Erase me']]);
 
       const res = await asAdmin(
-        request(httpServer).post('/billboard/items/upload'),
+        request(httpServer).post('/api/v1/billboards/import'),
       )
         .attach('file', buf, { filename: 'upload.xlsx' })
         .expect(201);
@@ -437,25 +480,26 @@ describe('Billboard E2E (External Mongo)', () => {
       expect(created).toBeDefined();
 
       await asAdmin(
-        request(httpServer).delete(`/billboard/items/${created.messageId}`),
+        request(httpServer).delete(`/api/v1/billboards/${created.messageId}`),
       ).expect(204);
 
       await asUser(
         request(httpServer)
-          .get('/billboard/items')
-          .query({ orgId: 'ORG_A', userId: 'U1' }),
+          .get('/api/v1/billboards/ORG_A')
+          .query({ userId: 'U1' }),
       ).expect(204);
     });
 
-    it('#14 Idempotency / non-existent → 404', async () => {
-      await asAdmin(
-        request(httpServer).delete('/billboard/items/000000000000000000000000'),
-      ).expect(404);
+    it('#14 non-existent → 200 with deleted: false', async () => {
+      const res = await asAdmin(
+        request(httpServer).delete('/api/v1/billboards/000000000000000000000000'),
+      ).expect(200);
+      expect(res.body.data.deleted).toBe(false);
     });
 
     it('#15 AuthZ – non-admin forbidden', async () => {
       await asUser(
-        request(httpServer).delete('/billboard/items/000000000000000000000000'),
+        request(httpServer).delete('/api/v1/billboards/000000000000000000000000'),
       ).expect(403);
     });
   });
@@ -468,7 +512,7 @@ describe('Billboard E2E (External Mongo)', () => {
       const bufLater = makeXlsx([['ORG_A', 'Later']]);
 
       const r1 = await asAdmin(
-        request(httpServer).post('/billboard/items/upload'),
+        request(httpServer).post('/api/v1/billboards/import'),
       )
         .attach('file', bufEarly, { filename: 'early.xlsx' })
         .expect(201);
@@ -476,7 +520,7 @@ describe('Billboard E2E (External Mongo)', () => {
       await new Promise((r) => setTimeout(r, 15));
 
       const r2 = await asAdmin(
-        request(httpServer).post('/billboard/items/upload'),
+        request(httpServer).post('/api/v1/billboards/import'),
       )
         .attach('file', bufLater, { filename: 'later.xlsx' })
         .expect(201);
@@ -491,8 +535,8 @@ describe('Billboard E2E (External Mongo)', () => {
 
       const res = await asUser(
         request(httpServer)
-          .get('/billboard/items')
-          .query({ orgId: 'ORG_A', userId: 'U1' }),
+          .get('/api/v1/billboards/ORG_A')
+          .query({ userId: 'U1' }),
       ).expect(200);
       expect(res.body.markdown).toBe('Later');
     });
