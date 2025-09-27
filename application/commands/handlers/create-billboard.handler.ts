@@ -6,6 +6,10 @@ import { IBillboardsRepository } from '../../../domain/interfaces';
 import { BillboardsEntity } from '../../../domain/models';
 import { CreateBillboardCommand } from '../impls';
 
+/**
+ * @class CreateBillboardHandler
+ * @description Command handler for creating a new billboard.
+ */
 @CommandHandler(CreateBillboardCommand)
 export class CreateBillboardHandler
   extends BaseCommandHandler
@@ -20,9 +24,13 @@ export class CreateBillboardHandler
     super(amqpConnection);
   }
 
+  /**
+   * @method execute
+   * @description Executes the create billboard command.
+   * @param {CreateBillboardCommand} command - The command to execute.
+   * @returns {Promise<BillboardsEntity>} A promise that resolves to the created billboard entity.
+   */
   async execute(command: CreateBillboardCommand): Promise<BillboardsEntity> {
-    this.logger.verbose(`${CreateBillboardHandler.name} executed.`);
-
     const {
       message, isWildcard, organizationIds, createdBy, createdAt,
     } = command.data;

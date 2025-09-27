@@ -3,6 +3,10 @@ import { Document } from 'mongoose';
 
 export type UserBillboardStateDocument = UserBillboardStateEntity & Document;
 
+/**
+ * @class UserBillboardStateEntity
+ * @description Represents the state of a user's interaction with a billboard message (e.g., dismissed).
+ */
 @Schema({ collection: 'user_billboard_state', timestamps: false })
 export class UserBillboardStateEntity {
   @Prop({ required: true })

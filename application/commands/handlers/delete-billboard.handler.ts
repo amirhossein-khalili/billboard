@@ -8,6 +8,10 @@ import {
 } from '../../../domain/interfaces';
 import { DeleteOrganizationBillboardCommand } from '../impls';
 
+/**
+ * @type DeleteOrganizationBillboardResult
+ * @description Represents the result of a delete operation for a billboard in an organization.
+ */
 export type DeleteOrganizationBillboardResult = {
   organizationId: string;
   billboardId: string;
@@ -16,6 +20,10 @@ export type DeleteOrganizationBillboardResult = {
   reason?: string;
 };
 
+/**
+ * @class DeleteOrganizationBillboardHandler
+ * @description Command handler for deleting a billboard from an organization.
+ */
 @CommandHandler(DeleteOrganizationBillboardCommand)
 export class DeleteOrganizationBillboardHandler
   extends BaseCommandHandler
@@ -34,6 +42,12 @@ export class DeleteOrganizationBillboardHandler
     super(amqpConnection);
   }
 
+  /**
+   * @method execute
+   * @description Executes the delete billboard command.
+   * @param {DeleteOrganizationBillboardCommand} command - The command to execute.
+   * @returns {Promise<DeleteOrganizationBillboardResult>} A promise that resolves to the result of the delete operation.
+   */
   async execute(
     command: DeleteOrganizationBillboardCommand,
   ): Promise<DeleteOrganizationBillboardResult> {

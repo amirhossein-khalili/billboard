@@ -1,6 +1,10 @@
 import { CreateBillboardDto, GetAllBillboardsDto } from '../dtos';
 import { BillboardsEntity } from '../models';
 
+/**
+ * @interface IBillboardsRepository
+ * @description Interface for the billboard repository, defining the contract for data access operations.
+ */
 export interface IBillboardsRepository {
   /**
    * Create a new billboard message

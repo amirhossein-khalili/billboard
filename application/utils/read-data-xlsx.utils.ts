@@ -1,8 +1,18 @@
 import { ErrorReporter, ParsedBillboardRow } from './types';
 import { XlsxTableParser } from './xlsx-table-parser';
 
+/**
+ * @class BillboardsXlsxParser
+ * @description A concrete implementation of `XlsxTableParser` for parsing billboard data from an Excel file.
+ */
 export class BillboardsXlsxParser extends XlsxTableParser<ParsedBillboardRow> {
-  // eslint-disable-next-line class-methods-use-this
+  /**
+   * @protected
+   * @method validateHeader
+   * @description Validates the header row of the billboard Excel sheet.
+   * @param {string[]} header - The header row to validate.
+   * @returns {string[]} An array of error messages, or an empty array if the header is valid.
+   */
   protected validateHeader(header: string[]): string[] {
     const errors: string[] = [];
 
@@ -19,7 +29,16 @@ export class BillboardsXlsxParser extends XlsxTableParser<ParsedBillboardRow> {
     return errors;
   }
 
-  // eslint-disable-next-line class-methods-use-this
+  /**
+   * @protected
+   * @method mapRow
+   * @description Maps a single row from the Excel sheet to a `ParsedBillboardRow` object.
+   * @param {string[]} cells - The cells of the row.
+   * @param {number} rowNumber - The row number in the worksheet.
+   * @param {string[]} _header - The header row (unused).
+   * @param {ErrorReporter} addError - A function to report errors for the current row.
+   * @returns {ParsedBillboardRow | null} The mapped object, or null if the row is invalid.
+   */
   protected mapRow(
     cells: string[],
     rowNumber: number,

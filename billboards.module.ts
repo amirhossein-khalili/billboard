@@ -17,6 +17,12 @@ import { BillboardsXlsxParser } from './application/utils';
 import { CommandHandlers } from './application/commands/handlers';
 import { QueryHandlers } from './application/queries/handlers';
 
+/**
+ * @module BillboardsModule
+ * @description This module encapsulates all the functionality related to billboards.
+ * It imports necessary modules, registers controllers, and provides services,
+ * repositories, and other components required for managing billboards.
+ */
 @Module({
   imports: [
     ConfigModule,

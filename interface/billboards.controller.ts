@@ -33,6 +33,10 @@ import {
 } from '../domain/dtos';
 import 'multer';
 
+/**
+ * @class BillboardController
+ * @description Handles HTTP requests for managing billboards.
+ */
 @ApiTags('billboards')
 @ApiBearerAuth()
 @Controller('/api/v1/billboards')
@@ -41,6 +45,14 @@ export class BillboardController extends BaseController {
     super();
   }
 
+  /**
+   * @method getBillboards
+   * @description Retrieves a list of billboards for the authenticated user's organization.
+   * @param {GetAllBillboardsDto} data - DTO for getting all billboards.
+   * @param {any} headers - Request headers.
+   * @param {any} req - The request object.
+   * @returns {Promise<GetBillboardsResponseDto>} A promise that resolves to the billboards response.
+   */
   @Get('')
   @RpcQuery('billboards', 'billboards', 'get_billboards')
   @ApiOkResponse({ description: 'Billboards…', type: GetBillboardsResponseDto })
@@ -58,8 +70,13 @@ export class BillboardController extends BaseController {
   }
 
   /**
-   * Imports billboards from an Excel file.
-   * The Excel file should have columns for organization ID and message.
+   * @method importBillboards
+   * @description Imports billboards from an Excel file. The file should have columns for organization ID and message.
+   * @param {Express.Multer.File} file - The uploaded Excel file.
+   * @param {any} headers - Request headers.
+   * @param {any} req - The request object.
+   * @returns {Promise<any>} The result of the import operation.
+   * @throws {BadRequestException} If no file is provided.
    */
   @Post('/import')
   @UseInterceptors(FileInterceptor('file'))
@@ -82,6 +99,14 @@ export class BillboardController extends BaseController {
     return this.svc.importFromExcel(file.buffer, meta);
   }
 
+  /**
+   * @method deleteBillboards
+   * @description Deletes billboards in bulk.
+   * @param {DeleteOrganizationBillboardDto[]} payload - An array of billboards to delete.
+   * @param {any} headers - Request headers.
+   * @param {any} req - The request object.
+   * @returns {Promise<any>} A promise that resolves to the bulk delete outcome.
+   */
   @Post('/delete')
   @ApiBody({
     schema: {

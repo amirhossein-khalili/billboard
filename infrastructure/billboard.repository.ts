@@ -6,6 +6,10 @@ import { IBillboardsRepository } from '../domain/interfaces';
 import { BillboardsDocument, BillboardsEntity } from '../domain/models';
 import { CreateBillboardDto, GetAllBillboardsDto } from '../domain/dtos';
 
+/**
+ * @class BillboardsRepository
+ * @description Implements the IBillboardsRepository interface for interacting with the billboards collection in MongoDB.
+ */
 @Injectable()
 export class BillboardsRepository implements IBillboardsRepository {
   constructor(
@@ -14,9 +18,10 @@ export class BillboardsRepository implements IBillboardsRepository {
   ) {}
 
   /**
-   * Creates a new billboard.
-   * @param billboard - The billboard data.
-   * @returns The created billboard.
+   * @method create
+   * @description Creates a new billboard document in the database.
+   * @param {CreateBillboardDto} data - The data for creating the new billboard.
+   * @returns {Promise<BillboardsEntity>} A promise that resolves to the newly created billboard entity.
    */
   async create(data: CreateBillboardDto): Promise<BillboardsEntity> {
     return new this.BillboardModel({
@@ -27,6 +32,12 @@ export class BillboardsRepository implements IBillboardsRepository {
     }).save();
   }
 
+  /**
+   * @method findAllForOrganization
+   * @description Finds all active billboards for a given organization, including wildcard billboards.
+   * @param {GetAllBillboardsDto} data - The DTO containing the organization ID.
+   * @returns {Promise<BillboardsEntity[]>} A promise that resolves to an array of billboard entities.
+   */
   async findAllForOrganization(
     data: GetAllBillboardsDto,
   ): Promise<BillboardsEntity[]> {
@@ -48,11 +59,22 @@ export class BillboardsRepository implements IBillboardsRepository {
       .exec();
   }
 
+  /**
+   * @method deleteForOrganization
+   * @description Deletes a billboard for a specific organization.
+   * If the billboard is associated with multiple organizations, it only removes the specified organization ID.
+   * If it's the last organization, the billboard is soft-deleted.
+   * @param {string} billboardId - The ID of the billboard to delete.
+   * @param {string} organizationId - The ID of the organization to remove the billboard from.
+   * @param {{ deletedBy: string; deletedAt: Date }} audit - Auditing information for the deletion.
+   * @returns {Promise<{ removed: boolean; fullyDeleted: boolean }>} A promise that resolves to an object indicating if the billboard was removed and if it was fully deleted.
+   */
   async deleteForOrganization(
     billboardId: string,
     organizationId: string,
     audit: { deletedBy: string; deletedAt: Date },
   ): Promise<{ removed: boolean; fullyDeleted: boolean }> {
+    // Attempt to delete by updating the document directly if it's the only organization
     const result = await this.BillboardModel.updateOne(
       {
         _id: billboardId,
@@ -74,6 +96,7 @@ export class BillboardsRepository implements IBillboardsRepository {
       return { removed: true, fullyDeleted: true };
     }
 
+    // If the above update failed, it might be part of a list of organizations.
     const doc = await this.BillboardModel.findOne({
       _id: billboardId,
       isDeleted: false,
@@ -88,6 +111,7 @@ export class BillboardsRepository implements IBillboardsRepository {
       (id) => id !== organizationId,
     );
 
+    // If removing this orgId leaves the array empty, soft-delete the billboard.
     if (nextOrgIds.length === 0) {
       doc.isDeleted = true;
       doc.deletedAt = audit.deletedAt;
@@ -97,6 +121,7 @@ export class BillboardsRepository implements IBillboardsRepository {
       return { removed: true, fullyDeleted: true };
     }
 
+    // Otherwise, just remove the orgId from the list.
     doc.organizationIds = nextOrgIds;
     doc.markModified('organizationIds');
     await doc.save();

@@ -1,5 +1,9 @@
 import { ApiProperty } from '@nestjs/swagger';
 
+/**
+ * @class BillboardDto
+ * @description Data transfer object for a billboard.
+ */
 export class BillboardDto {
   @ApiProperty({ example: 'msg-123' })
     id: string;

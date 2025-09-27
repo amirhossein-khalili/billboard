@@ -1,6 +1,10 @@
 import { ApiProperty } from '@nestjs/swagger';
 import { IsNotEmpty, IsString } from 'class-validator';
 
+/**
+ * @class DeleteOrganizationBillboardDto
+ * @description Data transfer object for deleting a billboard from an organization.
+ */
 export class DeleteOrganizationBillboardDto {
   @IsString()
   @IsNotEmpty()

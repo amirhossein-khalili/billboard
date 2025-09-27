@@ -1,6 +1,10 @@
 import { ApiHideProperty, ApiProperty } from '@nestjs/swagger';
 import { IsNotEmpty, IsOptional, IsString } from 'class-validator';
 
+/**
+ * @class GetAllBillboardsDto
+ * @description Data transfer object for retrieving all billboards for an organization.
+ */
 export class GetAllBillboardsDto {
   @IsString()
   @IsNotEmpty()

@@ -3,6 +3,10 @@ import { Document } from 'mongoose';
 
 export type BillboardsDocument = BillboardsEntity & Document;
 
+/**
+ * @class BillboardsEntity
+ * @description Represents a billboard message in the database.
+ */
 @Schema({ collection: 'billboards', timestamps: true })
 export class BillboardsEntity {
   @Prop({ required: true })
@@ -21,16 +25,16 @@ export class BillboardsEntity {
     createdAt: Date;
 
   @Prop({ required: true })
-    createdBy: string; // Admin user ID who created the message
+    createdBy: string;
 
   @Prop({ default: false })
-    isDeleted: boolean; // Soft delete flag for admin message management
+    isDeleted: boolean;
 
   @Prop({ default: null })
-    deletedAt: Date; // When the message was deleted by admin
+    deletedAt: Date;
 
   @Prop({ default: null })
-    deletedBy: string; // Admin user ID who deleted the message
+    deletedBy: string;
 }
 
 export const BillboardsSchema = SchemaFactory.createForClass(BillboardsEntity);

@@ -21,6 +21,10 @@ import {
 } from './commands/impls';
 import { GetAllBillboards } from './queries/impl';
 
+/**
+ * @class BillboardsService
+ * @description This service handles the business logic for billboards. It extends a BaseService and uses CQRS for handling commands and queries.
+ */
 @Injectable()
 export class BillboardsService extends BaseService {
   public readonly logger = new Logger(BillboardsService.name);
@@ -38,21 +42,42 @@ export class BillboardsService extends BaseService {
     super(amqpConnection);
   }
 
+  /**
+   * @method getUserId
+   * @description Extracts the user ID from the metadata.
+   * @param {IMetadata} [meta] - The metadata object.
+   * @returns {string | null} The user ID or null if not found.
+   */
   private static getUserId(meta?: IMetadata): string | null {
     const anyMeta: any = meta || {};
     return anyMeta?.user?.id || anyMeta?.user?._id || anyMeta?.userId || null;
   }
 
+  /**
+   * @method getAdminId
+   * @description Gets the admin ID from the metadata, defaulting to 'system'.
+   * @param {IMetadata} [meta] - The metadata object.
+   * @returns {string} The admin ID.
+   */
   private static getAdminId(meta?: IMetadata): string {
     return BillboardsService.getUserId(meta) ?? 'system';
   }
 
+  /**
+   * @method getBillboards
+   * @description Retrieves billboards for a specific organization.
+   * @param {GetAllBillboardsDto} data - The DTO for getting all billboards.
+   * @param {IMetadata} meta - The metadata.
+   * @returns {Promise<GetBillboardsResponseDto>} A promise that resolves to the billboards response.
+   * @throws {ForbiddenException} If the requester does not belong to any organization.
+   */
   async getBillboards(
     data: GetAllBillboardsDto,
     meta: IMetadata,
   ): Promise<GetBillboardsResponseDto> {
     this.logger.verbose(`getBillboards: org=${data.organizationId}}`);
 
+    // Find the organization based on the requester's position.
     const organization = findOrganizationByPosition(
       meta.requester.position,
       meta,
@@ -66,6 +91,7 @@ export class BillboardsService extends BaseService {
 
     const organizationId = organization.id;
 
+    // Execute the GetAllBillboards query.
     const result = await this.queryBus.execute(
       new GetAllBillboards(
         {
@@ -86,10 +112,11 @@ export class BillboardsService extends BaseService {
   }
 
   /**
-   * Import billboards from Excel
-   * @param fileBuffer - The buffer of the Excel file.
-   * @param meta - The metadata.
-   * @returns The result of the import operation.
+   * @method importFromExcel
+   * @description Imports billboards from an Excel file.
+   * @param {Buffer} fileBuffer - The buffer of the Excel file.
+   * @param {IMetadata} meta - The metadata.
+   * @returns {Promise<IQueryResult>} The result of the import operation.
    */
   async importFromExcel(
     fileBuffer: Buffer,
@@ -98,6 +125,7 @@ export class BillboardsService extends BaseService {
     const adminId = BillboardsService.getAdminId(meta);
     const { rows, errors } = this.billboardsXlsxParser.parse(fileBuffer);
 
+    // If there are no rows and only errors, return immediately.
     if (!rows.length && errors.length) {
       return {
         status: false,
@@ -128,6 +156,7 @@ export class BillboardsService extends BaseService {
       }
     });
 
+    // Wait for all create promises to settle.
     const results = await Promise.allSettled(createPromises);
     createdIds.push(
       ...results
@@ -150,6 +179,13 @@ export class BillboardsService extends BaseService {
     };
   }
 
+  /**
+   * @method deleteOrganizationBillboards
+   * @description Deletes billboards for specific organizations in bulk.
+   * @param {any} rawItems - The raw items to be deleted.
+   * @param {IMetadata} meta - The metadata.
+   * @returns {Promise<any>} A promise that resolves to the bulk delete outcome.
+   */
   async deleteOrganizationBillboards(
     rawItems: any,
     meta: IMetadata,
@@ -184,6 +220,7 @@ export class BillboardsService extends BaseService {
       reason: string;
     }[] = [];
 
+    // Normalize the input items to a consistent format.
     const normalizedItems: DeleteOrganizationBillboardDto[] = items
       .map((item, index) => {
         const organizationId =
@@ -207,6 +244,7 @@ export class BillboardsService extends BaseService {
       })
       .filter(Boolean) as DeleteOrganizationBillboardDto[];
 
+    // Create command promises for each item to be deleted.
     const commandPromises = normalizedItems.map((item) =>
       this.commandBus.execute(
         new DeleteOrganizationBillboardCommand(
@@ -221,8 +259,10 @@ export class BillboardsService extends BaseService {
       ),
     );
 
+    // Wait for all delete commands to settle.
     const commandResults = await Promise.allSettled(commandPromises);
 
+    // Process the results of the delete commands.
     commandResults.forEach((result, idx) => {
       const item = normalizedItems[idx];
 
