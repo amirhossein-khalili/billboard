@@ -1,19 +1,25 @@
-// application/billboards.service.ts
-import { Injectable, Logger, Inject } from "@nestjs/common";
-import { CommandBus, EventBus, QueryBus } from "@nestjs/cqrs";
-import { AmqpConnection } from "@golevelup/nestjs-rabbitmq";
+import { ForbiddenException, Injectable, Logger } from '@nestjs/common';
+import { CommandBus, EventBus, QueryBus } from '@nestjs/cqrs';
+import { AmqpConnection } from '@golevelup/nestjs-rabbitmq';
 import {
   IMetadata,
+  BaseService,
   IQueryResult,
-} from "com.chargoon.cloud.svc.common/dist/interfaces";
-import { BaseService } from "com.chargoon.cloud.svc.common/dist/base-service";
-import { ConfigService } from "@nestjs/config";
-import { GetBillboardsDto } from "../domain/dtos";
+  findOrganizationByPosition,
+} from 'com.chargoon.cloud.svc.common';
+import { ConfigService } from '@nestjs/config';
 import {
-  IBillboardRepository,
-  IUserBillboardStateRepository,
-} from "../domain/interfaces";
-import { parseBillboardsXlsx } from "./utils/read-data-xlsx.utils";
+  CreateBillboardDto,
+  DeleteOrganizationBillboardDto,
+  GetAllBillboardsDto,
+  GetBillboardsResponseDto,
+} from '../domain/dtos';
+import { BillboardsXlsxParser } from './utils';
+import {
+  CreateBillboardCommand,
+  DeleteOrganizationBillboardCommand,
+} from './commands/impls';
+import { GetAllBillboards } from './queries/impl';
 
 @Injectable()
 export class BillboardsService extends BaseService {
@@ -27,83 +33,70 @@ export class BillboardsService extends BaseService {
     protected readonly amqpConnection: AmqpConnection,
     protected readonly eventBus: EventBus,
     protected readonly configService: ConfigService,
-    @Inject("IBillboardRepository")
-    private readonly billboardRepo: IBillboardRepository,
-    @Inject("IUserBillboardStateRepository")
-    private readonly userStateRepo: IUserBillboardStateRepository
+    private readonly billboardsXlsxParser: BillboardsXlsxParser,
   ) {
     super(amqpConnection);
   }
 
-  private getUserId(meta?: IMetadata): string | null {
+  private static getUserId(meta?: IMetadata): string | null {
     const anyMeta: any = meta || {};
     return anyMeta?.user?.id || anyMeta?.user?._id || anyMeta?.userId || null;
   }
 
-  private getAdminId(meta?: IMetadata): string {
-    return this.getUserId(meta) ?? "system";
+  private static getAdminId(meta?: IMetadata): string {
+    return BillboardsService.getUserId(meta) ?? 'system';
   }
 
-  // Returns only the last message for the org (wildcard included).
-  // If the user has dismissed that last message, returns null (empty state).
   async getBillboards(
-    data: GetBillboardsDto,
-    meta: IMetadata
-  ): Promise<IQueryResult> {
-    const { organizationId } = data;
-    const userId = this.getUserId(meta);
+    data: GetAllBillboardsDto,
+    meta: IMetadata,
+  ): Promise<GetBillboardsResponseDto> {
+    this.logger.verbose(`getBillboards: org=${data.organizationId}}`);
 
-    this.logger.verbose(
-      `getBillboards: org=${organizationId}, user=${userId ?? "anonymous"}`
+    const organization = findOrganizationByPosition(
+      meta.requester.position,
+      meta,
     );
-
-    const items = await this.billboardRepo.findForOrganizations(
-      [organizationId],
-      true
-    );
-
-    // items are sorted desc by createdAt in repo
-    const latest = items[0] ?? null;
-
-    if (latest && userId) {
-      const dismissed = await this.userStateRepo.isDismissed(
-        latest._id,
-        userId,
-        organizationId
+    if (!organization) {
+      throw new ForbiddenException(
+        `requester with positionId ${meta.requester.position.id}
+         doesn't exist in any organizations`,
       );
-      if (dismissed) {
-        return {
-          status: true,
-          data: null, // empty state for this user
-          meta: {} as IMetadata,
-        };
-      }
     }
 
-    const dto = latest
-      ? {
-          id: latest._id,
+    const organizationId = organization.id;
+
+    const result = await this.queryBus.execute(
+      new GetAllBillboards(
+        {
+          ...data,
           organizationId,
-          message: latest.message,
-          createdAt: latest.createdAt,
-          isWildcard: latest.isWildcard,
-        }
-      : null;
+        },
+        {
+          ...meta,
+        },
+      ),
+    );
 
     return {
       status: true,
-      data: dto,
-      meta: {} as IMetadata,
+      data: result,
+      meta: meta as IMetadata,
     };
   }
 
-  // Import billboards from Excel
+  /**
+   * Import billboards from Excel
+   * @param fileBuffer - The buffer of the Excel file.
+   * @param meta - The metadata.
+   * @returns The result of the import operation.
+   */
   async importFromExcel(
     fileBuffer: Buffer,
-    meta: IMetadata
+    meta: IMetadata,
   ): Promise<IQueryResult> {
-    const adminId = this.getAdminId(meta);
-    const { rows, errors } = parseBillboardsXlsx(fileBuffer);
+    const adminId = BillboardsService.getAdminId(meta);
+    const { rows, errors } = this.billboardsXlsxParser.parse(fileBuffer);
 
     if (!rows.length && errors.length) {
       return {
@@ -114,24 +107,37 @@ export class BillboardsService extends BaseService {
     }
 
     const createdIds: string[] = [];
-    for (const r of rows) {
+    const createPromises = rows.map(async (r) => {
       try {
-        const created = await this.billboardRepo.create({
+        const data: CreateBillboardDto = {
           message: r.message,
           isWildcard: r.isWildcard,
           organizationIds: r.isWildcard ? [] : r.organizationIds,
           createdBy: adminId,
           createdAt: new Date(),
-        });
-        createdIds.push(created._id);
+        };
+        const created = await this.commandBus.execute(
+          new CreateBillboardCommand(data, meta),
+        );
+        return created._id;
       } catch (e: any) {
         errors.push(
-          `Row ${r.rowNumber}: Failed to create message (${
-            e?.message || "unknown error"
-          })`
+          `Row ${r.rowNumber}: Failed to create message (${e?.message ?? 'unknown error'})`,
         );
+        return null; // indicate failure
       }
-    }
+    });
+
+    const results = await Promise.allSettled(createPromises);
+    createdIds.push(
+      ...results
+        .filter(
+          (result): result is PromiseFulfilledResult<string> =>
+            result.status === 'fulfilled',
+        )
+        .map((result) => result.value)
+        .filter(Boolean),
+    );
 
     return {
       status: true,
@@ -144,54 +150,112 @@ export class BillboardsService extends BaseService {
     };
   }
 
-  // Admin delete (soft)
-  async deleteBillboard(id: string, meta: IMetadata): Promise<IQueryResult> {
-    const adminId = this.getAdminId(meta);
-    const ok = await this.billboardRepo.deleteById(id, adminId);
-    if (ok) {
-      // Cleanup user dismissals for the deleted message
-      await this.userStateRepo.deleteByMessageId(id);
-    }
-    return {
-      status: ok,
-      data: { id, deleted: ok },
-      meta: {} as IMetadata,
+  async deleteOrganizationBillboards(
+    rawItems: any,
+    meta: IMetadata,
+  ): Promise<{
+    status: boolean;
+    data: {
+      successes: {
+        organizationId: string;
+        billboardId: string;
+        fullyDeleted: boolean;
+      }[];
+      failures: {
+        organizationId?: string;
+        billboardId?: string;
+        reason: string;
+      }[];
     };
-  }
+    meta: IMetadata;
+  }> {
+    const adminId = BillboardsService.getAdminId(meta);
+    const deletedAt = new Date();
+    const items: any[] = Array.isArray(rawItems) ? rawItems : [];
 
-  // User dismiss (close) the latest message (by id)
-  async dismissBillboard(
-    orgId: string,
-    messageId: string,
-    meta: IMetadata
-  ): Promise<IQueryResult> {
-    const userId = this.getUserId(meta);
-    if (!userId) {
-      return {
-        status: false,
-        data: { message: "Unauthorized: cannot determine user" },
-        meta: {} as IMetadata,
-      };
-    }
-    // Ensure message exists and is active
-    const exists = await this.billboardRepo.exists(messageId);
-    if (!exists) {
-      return {
-        status: false,
-        data: { message: "Message not found or deleted" },
-        meta: {} as IMetadata,
-      };
-    }
-    await this.userStateRepo.dismissForUser(
-      messageId,
-      userId,
-      orgId,
-      new Date()
+    const successes: {
+      organizationId: string;
+      billboardId: string;
+      fullyDeleted: boolean;
+    }[] = [];
+    const failures: {
+      organizationId?: string;
+      billboardId?: string;
+      reason: string;
+    }[] = [];
+
+    const normalizedItems: DeleteOrganizationBillboardDto[] = items
+      .map((item, index) => {
+        const organizationId =
+          item?.organizationId ??
+          item?.orgnizationId ??
+          item?.orgnizationid ??
+          item?.orgId;
+        const billboardId = item?.billboardId ?? item?._id ?? item?.id;
+
+        if (!organizationId || !billboardId) {
+          failures.push({
+            reason: `invalid_payload_at_index_${index}`,
+          });
+          return null;
+        }
+
+        return {
+          organizationId: String(organizationId).trim(),
+          billboardId: String(billboardId).trim(),
+        };
+      })
+      .filter(Boolean) as DeleteOrganizationBillboardDto[];
+
+    const commandPromises = normalizedItems.map((item) =>
+      this.commandBus.execute(
+        new DeleteOrganizationBillboardCommand(
+          {
+            organizationId: item.organizationId,
+            billboardId: item.billboardId,
+            deletedBy: adminId,
+            deletedAt,
+          },
+          meta,
+        ),
+      ),
     );
+
+    const commandResults = await Promise.allSettled(commandPromises);
+
+    commandResults.forEach((result, idx) => {
+      const item = normalizedItems[idx];
+
+      if (result.status === 'fulfilled') {
+        if (result.value.removed) {
+          successes.push({
+            organizationId: item.organizationId,
+            billboardId: item.billboardId,
+            fullyDeleted: result.value.fullyDeleted,
+          });
+        } else {
+          failures.push({
+            organizationId: item.organizationId,
+            billboardId: item.billboardId,
+            reason: result.value.reason ?? 'not_removed',
+          });
+        }
+      } else {
+        failures.push({
+          organizationId: item.organizationId,
+          billboardId: item.billboardId,
+          reason: result.reason?.message ?? 'execution_error',
+        });
+      }
+    });
+
     return {
-      status: true,
-      data: { dismissed: true, messageId, orgId },
-      meta: {} as IMetadata,
+      status: failures.length === 0,
+      data: {
+        successes,
+        failures,
+      },
+      meta: meta as IMetadata,
     };
   }
 }

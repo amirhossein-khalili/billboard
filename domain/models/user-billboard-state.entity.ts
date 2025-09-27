@@ -1,4 +1,3 @@
-// domain/models/user-billboard-state.entity.ts
 import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
 import { Document } from 'mongoose';
 
@@ -7,16 +6,16 @@ export type UserBillboardStateDocument = UserBillboardStateEntity & Document;
 @Schema({ collection: 'user_billboard_state', timestamps: false })
 export class UserBillboardStateEntity {
   @Prop({ required: true })
-  messageId: string;
+    messageId: string;
 
   @Prop({ required: true })
-  userId: string;
+    userId: string;
 
   @Prop({ required: true })
-  orgId: string;
+    orgId: string;
 
   @Prop({ required: true, default: Date.now })
-  closedAt: Date;
+    closedAt: Date;
 }
 
 export const UserBillboardStateSchema = SchemaFactory.createForClass(

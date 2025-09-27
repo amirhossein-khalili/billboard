@@ -4,13 +4,12 @@ import { Model, FilterQuery } from 'mongoose';
 import {
   UserBillboardStateDocument,
   UserBillboardStateEntity,
-} from '../domain/models/user-billboard-state.entity';
-import { IUserBillboardStateRepository } from '../domain/interfaces/user-billboard-state.repository';
+} from '../domain/models';
+import { IUserBillboardsStateRepository } from '../domain/interfaces';
 
 @Injectable()
-export class UserBillboardStateRepository
-  implements IUserBillboardStateRepository
-{
+export class UserBillboardsStateRepository
+implements IUserBillboardsStateRepository {
   constructor(
     @InjectModel(UserBillboardStateEntity.name)
     private readonly model: Model<UserBillboardStateDocument>,
@@ -24,7 +23,11 @@ export class UserBillboardStateRepository
   ): Promise<void> {
     await this.model.updateOne(
       { messageId, userId, orgId } as FilterQuery<UserBillboardStateDocument>,
-      { $set: { messageId, userId, orgId, closedAt } },
+      {
+        $set: {
+          messageId, userId, orgId, closedAt,
+        },
+      },
       { upsert: true },
     );
   }
@@ -43,5 +46,8 @@ export class UserBillboardStateRepository
   async deleteByMessageId(messageId: string): Promise<void> {
     await this.model.deleteMany({ messageId }).exec();
   }
+
+  async deleteByMessageIdAndOrg(messageId: string, orgId: string): Promise<void> {
+    await this.model.deleteMany({ messageId, orgId }).exec();
+  }
 }
- 

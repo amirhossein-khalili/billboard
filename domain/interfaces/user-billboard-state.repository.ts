@@ -1,4 +1,4 @@
-export interface IUserBillboardStateRepository {
+export interface IUserBillboardsStateRepository {
   dismissForUser(
     messageId: string,
     userId: string,
@@ -13,4 +13,8 @@ export interface IUserBillboardStateRepository {
   ): Promise<boolean>;
 
   deleteByMessageId(messageId: string): Promise<void>;
+
+  deleteByMessageId(messageId: string): Promise<void>;
+
+  deleteByMessageIdAndOrg(messageId: string, orgId: string): Promise<void>;
 }

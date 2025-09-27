@@ -6,31 +6,31 @@ export type BillboardsDocument = BillboardsEntity & Document;
 @Schema({ collection: 'billboards', timestamps: true })
 export class BillboardsEntity {
   @Prop({ required: true })
-  _id: string;
+    _id: string;
 
   @Prop({ required: true })
-  message: string;
+    message: string;
 
   @Prop({ required: true, default: false })
-  isWildcard: boolean;
+    isWildcard: boolean;
 
   @Prop({ type: [String], default: [] })
-  organizationIds: string[];
+    organizationIds: string[];
 
   @Prop({ required: true, default: Date.now })
-  createdAt: Date;
+    createdAt: Date;
 
   @Prop({ required: true })
-  createdBy: string; // Admin user ID who created the message
+    createdBy: string; // Admin user ID who created the message
 
   @Prop({ default: false })
-  isDeleted: boolean; // Soft delete flag for admin message management
+    isDeleted: boolean; // Soft delete flag for admin message management
 
   @Prop({ default: null })
-  deletedAt: Date; // When the message was deleted by admin
+    deletedAt: Date; // When the message was deleted by admin
 
   @Prop({ default: null })
-  deletedBy: string; // Admin user ID who deleted the message
+    deletedBy: string; // Admin user ID who deleted the message
 }
 
 export const BillboardsSchema = SchemaFactory.createForClass(BillboardsEntity);

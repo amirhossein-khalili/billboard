@@ -1,24 +1,37 @@
-// interface/billboards.controller.ts
 import {
+  BadRequestException,
+  Body,
   Controller,
   Get,
   Headers,
-  Request,
   Post,
+  Request,
   UploadedFile,
   UseInterceptors,
-  Delete,
-  Param,
-  BadRequestException,
 } from '@nestjs/common';
-import { BaseController } from 'com.chargoon.cloud.svc.common/dist/base-controller';
-import { RpcQuery } from 'com.chargoon.cloud.svc.common/dist/utils';
-import { ParamEx as ParamEx } from 'com.chargoon.cloud.svc.common';
-import { ApiBearerAuth, ApiTags, ApiConsumes, ApiBody } from '@nestjs/swagger';
-import { SwaggerGet } from 'com.chargoon.cloud.svc.common/dist/swagger';
-import { BillboardsService } from '../application/billboards.service';
-import { GetBillboardsDto, CreateBillboardsDto } from '../domain/dtos';
+import {
+  BaseController,
+  ParamEx as Param,
+  RpcQuery,
+  SwaggerGet,
+} from 'com.chargoon.cloud.svc.common';
+import {
+  ApiBearerAuth,
+  ApiBody,
+  ApiConsumes,
+  ApiOkResponse,
+  ApiTags,
+} from '@nestjs/swagger';
 import { FileInterceptor } from '@nestjs/platform-express';
+import { Express } from 'express';
+import { BillboardsService } from '../application/billboards.service';
+import {
+  CreateBillboardsDto,
+  DeleteOrganizationBillboardDto,
+  GetAllBillboardsDto,
+  GetBillboardsResponseDto,
+} from '../domain/dtos';
+import 'multer';
 
 @ApiTags('billboards')
 @ApiBearerAuth()
@@ -28,11 +41,12 @@ export class BillboardController extends BaseController {
     super();
   }
 
-  @Get('/:organizationId')
+  @Get('')
   @RpcQuery('billboards', 'billboards', 'get_billboards')
+  @ApiOkResponse({ description: 'Billboards…', type: GetBillboardsResponseDto })
   @SwaggerGet('return a billboards', false)
   async getBillboards(
-    @ParamEx() data: GetBillboardsDto,
+    @Param() data: GetAllBillboardsDto,
     @Headers() headers: any,
     @Request() req: any,
   ) {
@@ -43,6 +57,10 @@ export class BillboardController extends BaseController {
     );
   }
 
+  /**
+   * Imports billboards from an Excel file.
+   * The Excel file should have columns for organization ID and message.
+   */
   @Post('/import')
   @UseInterceptors(FileInterceptor('file'))
   @ApiConsumes('multipart/form-data')
@@ -64,28 +82,74 @@ export class BillboardController extends BaseController {
     return this.svc.importFromExcel(file.buffer, meta);
   }
 
-  @Delete('/:id')
-  async deleteBillboard(
-    @Param('id') id: string,
+  @Post('/delete')
+  @ApiBody({
+    schema: {
+      type: 'array',
+      items: {
+        type: 'object',
+        required: ['organizationId', 'billboardId'],
+        properties: {
+          organizationId: {
+            type: 'string',
+            description:
+              'Organization identifier; also supports `orgnizationid` typo.',
+            example: '2d0fa324-f699-4576-87d2-1d680ee50f53',
+          },
+          billboardId: {
+            type: 'string',
+            description: 'Billboard message identifier.',
+            example: 'bb-123456',
+          },
+        },
+      },
+    },
+  })
+  @ApiOkResponse({
+    description: 'Bulk delete outcome for each requested billboard.',
+    schema: {
+      type: 'object',
+      properties: {
+        status: { type: 'boolean' },
+        data: {
+          type: 'object',
+          properties: {
+            successes: {
+              type: 'array',
+              items: {
+                type: 'object',
+                properties: {
+                  organizationId: { type: 'string' },
+                  billboardId: { type: 'string' },
+                  fullyDeleted: { type: 'boolean' },
+                },
+              },
+            },
+            failures: {
+              type: 'array',
+              items: {
+                type: 'object',
+                properties: {
+                  organizationId: { type: 'string' },
+                  billboardId: { type: 'string' },
+                  reason: { type: 'string' },
+                },
+              },
+            },
+          },
+        },
+        meta: { type: 'object' },
+      },
+    },
+  })
+  async deleteBillboards(
+    @Body() payload: DeleteOrganizationBillboardDto[],
     @Headers() headers: any,
     @Request() req: any,
   ) {
     const meta = await this.getMetadata({}, headers, req, {
       pagination: false,
     });
-    return this.svc.deleteBillboard(id, meta);
-  }
-
-  @Post('/:organizationId/dismiss/:id')
-  async dismissBillboard(
-    @Param('organizationId') organizationId: string,
-    @Param('id') id: string,
-    @Headers() headers: any,
-    @Request() req: any,
-  ) {
-    const meta = await this.getMetadata({}, headers, req, {
-      pagination: false,
-    });
-    return this.svc.dismissBillboard(organizationId, id, meta);
+    return this.svc.deleteOrganizationBillboards(payload, meta);
   }
 }

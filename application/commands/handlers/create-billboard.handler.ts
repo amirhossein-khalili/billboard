@@ -1,46 +1,38 @@
-import { Logger } from '@nestjs/common';
 import { CommandHandler, ICommandHandler } from '@nestjs/cqrs';
-import { BaseCommandHandler } from 'com.chargoon.cloud.svc.common/dist/base-command-handler';
-import { InjectRedis } from 'com.chargoon.cloud.svc.common';
-import Redis from 'ioredis';
-import { domainInfo } from '../../../domain/utils';
-import { CreateBillboardCommand } from '../impl';
+import { Inject, Logger } from '@nestjs/common';
+import { BaseCommandHandler } from 'com.chargoon.cloud.svc.common';
+import { AmqpConnection } from '@golevelup/nestjs-rabbitmq';
+import { IBillboardsRepository } from '../../../domain/interfaces';
+import { BillboardsEntity } from '../../../domain/models';
+import { CreateBillboardCommand } from '../impls';
 
 @CommandHandler(CreateBillboardCommand)
 export class CreateBillboardHandler
   extends BaseCommandHandler
-  implements ICommandHandler<CreateBillboardCommand>
-{
+  implements ICommandHandler<CreateBillboardCommand, BillboardsEntity> {
   protected readonly logger = new Logger(CreateBillboardHandler.name);
 
-  constructor(@InjectRedis() protected redis: Redis) {
-    super(null);
+  constructor(
+    @Inject('IBillboardsRepository')
+    private readonly billboardsRepository: IBillboardsRepository,
+    protected readonly amqpConnection: AmqpConnection,
+  ) {
+    super(amqpConnection);
   }
 
-  async execute(command: CreateBillboardCommand) {
+  async execute(command: CreateBillboardCommand): Promise<BillboardsEntity> {
     this.logger.verbose(`${CreateBillboardHandler.name} executed.`);
-    const { data, meta } = command;
-    try {
-      ////
-    } catch (err) {
-      await this.publishEvent<CreateBillboardDto>({
-        event: {
-          evt: 'events.administration.cache_reset_failed',
-          data,
-          meta,
-        },
-        messages: [
-          {
-            level: 'error',
-            service: domainInfo().service,
-            domain: domainInfo().domain,
-            context: 'CreateBillboardCommand',
-            exception: err.name,
-            message: err.message,
-          },
-        ],
-        exception: err,
-      });
-    }
+
+    const {
+      message, isWildcard, organizationIds, createdBy, createdAt,
+    } = command.data;
+
+    return this.billboardsRepository.create({
+      message,
+      isWildcard,
+      organizationIds,
+      createdBy,
+      createdAt,
+    });
   }
 }

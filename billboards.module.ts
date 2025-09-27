@@ -1,19 +1,21 @@
-// billboards.module.ts
 import { Module } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
 import { MongooseModule } from '@nestjs/mongoose';
 import { BillboardController } from './interface/billboards.controller';
 import { BillboardsService } from './application/billboards.service';
 import {
+  BillboardsRepository,
+  UserBillboardsStateRepository,
+} from './infrastructure';
+import {
   BillboardsEntity,
   BillboardsSchema,
-} from './domain/models/billboards.entity';
-import { BillboardRepository } from './infrastructure';
-import {
   UserBillboardStateEntity,
   UserBillboardStateSchema,
-} from './domain/models/user-billboard-state.entity';
-import { UserBillboardStateRepository } from './infrastructure';
+} from './domain/models';
+import { BillboardsXlsxParser } from './application/utils';
+import { CommandHandlers } from './application/commands/handlers';
+import { QueryHandlers } from './application/queries/handlers';
 
 @Module({
   imports: [
@@ -26,16 +28,18 @@ import { UserBillboardStateRepository } from './infrastructure';
   controllers: [BillboardController],
   providers: [
     BillboardsService,
-    {
-      provide: 'IBillboardRepository',
-      useClass: BillboardRepository,
-    },
-    {
-      provide: 'IUserBillboardStateRepository',
-      useClass: UserBillboardStateRepository,
-    },
     BillboardController,
+    BillboardsXlsxParser,
+    ...CommandHandlers,
+    ...QueryHandlers,
+    {
+      provide: 'IBillboardsRepository',
+      useClass: BillboardsRepository,
+    },
+    {
+      provide: 'IUserBillboardsStateRepository',
+      useClass: UserBillboardsStateRepository,
+    },
   ],
-  exports: ['IBillboardRepository', 'IUserBillboardStateRepository'],
 })
 export class BillboardsModule {}
