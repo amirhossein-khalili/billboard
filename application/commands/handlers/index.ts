@@ -1,7 +1,7 @@
-import { CreateBillboardHandler } from './create-billboard.handler';
-import { DeleteOrganizationBillboardHandler } from './delete-billboard.handler';
+import { CreateBillboardMessageHandler } from './create-billboard-message.handler';
+import { DeleteBillboardMessageHandler } from './delete-billboard-message.handler';
 
 export const CommandHandlers = [
-  CreateBillboardHandler,
-  DeleteOrganizationBillboardHandler,
+  CreateBillboardMessageHandler,
+  DeleteBillboardMessageHandler,
 ];

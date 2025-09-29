@@ -1,15 +1,16 @@
 /**
- * @interface IUserBillboardsStateRepository
- * @description Interface for the user billboard state repository, defining methods for managing the dismissed state of billboards for users.
+ * @interface IUserBillboardMessagesStateRepository
+ * @description Interface for the user billboard message state repository, defining methods for
+ * managing the dismissed state of billboard messages for users.
  */
-export interface IUserBillboardsStateRepository {
+export interface IUserBillboardMessagesStateRepository {
   /**
    * @method dismissForUser
-   * @description Marks a billboard as dismissed for a specific user in an organization.
+   * @description Marks a billboard message as dismissed for a specific user in an organization.
    * @param {string} messageId - The ID of the billboard message.
    * @param {string} userId - The ID of the user.
    * @param {string} orgId - The ID of the organization.
-   * @param {Date} [closedAt] - The timestamp when the billboard was dismissed.
+   * @param {Date} [closedAt] - The timestamp when the billboard message was dismissed.
    * @returns {Promise<void>}
    */
   dismissForUser(
@@ -21,11 +22,12 @@ export interface IUserBillboardsStateRepository {
 
   /**
    * @method isDismissed
-   * @description Checks if a billboard has been dismissed by a specific user in an organization.
+   * @description Checks if a billboard message has been dismissed by a specific user in an organization.
    * @param {string} messageId - The ID of the billboard message.
    * @param {string} userId - The ID of the user.
    * @param {string} orgId - The ID of the organization.
-   * @returns {Promise<boolean>} A promise that resolves to true if the billboard is dismissed, otherwise false.
+   * @returns {Promise<boolean>} A promise that resolves to true if the
+   * billboard message is dismissed, otherwise false.
    */
   isDismissed(
     messageId: string,
@@ -43,7 +45,8 @@ export interface IUserBillboardsStateRepository {
 
   /**
    * @method deleteByMessageIdAndOrg
-   * @description Deletes all dismissal states for a specific billboard message within a particular organization.
+   * @description Deletes all dismissal states for a specific billboard message
+   * within a particular organization.
    * @param {string} messageId - The ID of the billboard message.
    * @param {string} orgId - The ID of the organization.
    * @returns {Promise<void>}

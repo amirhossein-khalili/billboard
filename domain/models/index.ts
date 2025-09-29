@@ -1,2 +1,2 @@
-export * from './billboards.entity';
-export * from './user-billboard-state.entity';
+export * from './billboard-message.entity';
+export * from './user-billboard-message-state.entity';

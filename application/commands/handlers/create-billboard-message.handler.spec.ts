@@ -1,14 +1,14 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { Logger } from '@nestjs/common';
 import { AmqpConnection } from '@golevelup/nestjs-rabbitmq';
-import { CreateBillboardHandler } from './create-billboard.handler';
-import { CreateBillboardCommand } from '../impls';
-import { IBillboardsRepository } from '../../../domain/interfaces';
-import { BillboardsEntity } from '../../../domain/models';
+import { CreateBillboardMessageHandler } from './create-billboard-message.handler';
+import { CreateBillboardMessageCommand } from '../impls';
+import { IBillboardMessagesRepository } from '../../../domain/interfaces';
+import { BillboardMessagesEntity } from '../../../domain/models';
 
-describe('CreateBillboardHandler', () => {
-  let handler: CreateBillboardHandler;
-  let billboardsRepository: jest.Mocked<IBillboardsRepository>;
+describe('CreateBillboardMessageHandler', () => {
+  let handler: CreateBillboardMessageHandler;
+  let billboardMessagesRepository: jest.Mocked<IBillboardMessagesRepository>;
 
   const mockMetadata = {
     version: 1,
@@ -19,7 +19,7 @@ describe('CreateBillboardHandler', () => {
   };
 
   beforeEach(async () => {
-    const mockBillboardsRepository = {
+    const mockBillboardMessagesRepository = {
       create: jest.fn(),
     };
 
@@ -29,10 +29,10 @@ describe('CreateBillboardHandler', () => {
 
     const module: TestingModule = await Test.createTestingModule({
       providers: [
-        CreateBillboardHandler,
+        CreateBillboardMessageHandler,
         {
-          provide: 'IBillboardsRepository',
-          useValue: mockBillboardsRepository,
+          provide: 'IBillboardMessagesRepository',
+          useValue: mockBillboardMessagesRepository,
         },
         {
           provide: AmqpConnection,
@@ -41,8 +41,10 @@ describe('CreateBillboardHandler', () => {
       ],
     }).compile();
 
-    handler = module.get<CreateBillboardHandler>(CreateBillboardHandler);
-    billboardsRepository = module.get('IBillboardsRepository');
+    handler = module.get<CreateBillboardMessageHandler>(
+      CreateBillboardMessageHandler,
+    );
+    billboardMessagesRepository = module.get('IBillboardMessagesRepository');
 
     // Mock logger methods
     jest.spyOn(Logger.prototype, 'verbose').mockImplementation();
@@ -53,117 +55,114 @@ describe('CreateBillboardHandler', () => {
   });
 
   describe('execute', () => {
-    it('should successfully create a billboard', async () => {
+    it('should successfully create a billboard message for specific organization', async () => {
       // Arrange
       const commandData = {
         message: 'Test billboard message',
-        isWildcard: false,
-        organizationIds: ['org-123', 'org-456'],
-        createdBy: 'user-789',
+        organizationId: 'org-123',
         createdAt: new Date('2025-01-15T10:00:00Z'),
       };
 
-      const command = new CreateBillboardCommand(commandData, mockMetadata);
+      const command = new CreateBillboardMessageCommand(
+        commandData,
+        mockMetadata,
+      );
 
-      const mockBillboardEntity: BillboardsEntity = {
-        _id: 'billboard-123',
+      const mockBillboardMessageEntity: BillboardMessagesEntity = {
+        _id: 'billboard-message-123',
         message: 'Test billboard message',
-        isWildcard: false,
-        organizationIds: ['org-123', 'org-456'],
-        createdBy: 'user-789',
+        organizationId: 'org-123',
         createdAt: new Date('2025-01-15T10:00:00Z'),
         isDeleted: false,
         deletedAt: null,
         deletedBy: null,
       };
 
-      billboardsRepository.create.mockResolvedValue(mockBillboardEntity);
+      billboardMessagesRepository.create.mockResolvedValue(
+        mockBillboardMessageEntity,
+      );
 
       // Act
       const result = await handler.execute(command);
 
       // Assert
       expect(Logger.prototype.verbose).toHaveBeenCalledWith(
-        'CreateBillboardHandler executed.',
+        'CreateBillboardMessageHandler executed.',
       );
 
-      expect(billboardsRepository.create).toHaveBeenCalledWith({
+      expect(billboardMessagesRepository.create).toHaveBeenCalledWith({
         message: 'Test billboard message',
-        isWildcard: false,
-        organizationIds: ['org-123', 'org-456'],
-        createdBy: 'user-789',
+        organizationId: 'org-123',
         createdAt: new Date('2025-01-15T10:00:00Z'),
       });
 
-      expect(result).toEqual(mockBillboardEntity);
+      expect(result).toEqual(mockBillboardMessageEntity);
     });
 
-    it('should create a wildcard billboard', async () => {
+    it('should create a billboard message for all organizations using asterisk', async () => {
       // Arrange
       const commandData = {
         message: 'Global announcement',
-        isWildcard: true,
-        organizationIds: [],
-        createdBy: 'admin-user',
+        organizationId: '*',
         createdAt: new Date('2025-01-15T12:00:00Z'),
       };
 
-      const command = new CreateBillboardCommand(commandData, mockMetadata);
+      const command = new CreateBillboardMessageCommand(
+        commandData,
+        mockMetadata,
+      );
 
-      const mockBillboardEntity: BillboardsEntity = {
-        _id: 'billboard-456',
+      const mockBillboardMessageEntity: BillboardMessagesEntity = {
+        _id: 'billboard-message-456',
         message: 'Global announcement',
-        isWildcard: true,
-        organizationIds: [],
-        createdBy: 'admin-user',
+        organizationId: '*',
         createdAt: new Date('2025-01-15T12:00:00Z'),
         isDeleted: false,
         deletedAt: null,
         deletedBy: null,
       };
 
-      billboardsRepository.create.mockResolvedValue(mockBillboardEntity);
+      billboardMessagesRepository.create.mockResolvedValue(
+        mockBillboardMessageEntity,
+      );
 
       // Act
       const result = await handler.execute(command);
 
       // Assert
-      expect(billboardsRepository.create).toHaveBeenCalledWith({
+      expect(billboardMessagesRepository.create).toHaveBeenCalledWith({
         message: 'Global announcement',
-        isWildcard: true,
-        organizationIds: [],
-        createdBy: 'admin-user',
+        organizationId: '*',
         createdAt: new Date('2025-01-15T12:00:00Z'),
       });
 
-      expect(result).toEqual(mockBillboardEntity);
+      expect(result).toEqual(mockBillboardMessageEntity);
     });
 
     it('should handle repository errors gracefully', async () => {
       // Arrange
       const commandData = {
         message: 'Test billboard message',
-        isWildcard: false,
-        organizationIds: ['org-123'],
-        createdBy: 'user-789',
+        organizationId: 'org-123',
         createdAt: new Date('2025-01-15T10:00:00Z'),
       };
 
-      const command = new CreateBillboardCommand(commandData, mockMetadata);
+      const command = new CreateBillboardMessageCommand(
+        commandData,
+        mockMetadata,
+      );
       const error = new Error('Database connection error');
 
-      billboardsRepository.create.mockRejectedValue(error);
+      billboardMessagesRepository.create.mockRejectedValue(error);
 
       // Act & Assert
       await expect(handler.execute(command)).rejects.toThrow(
         'Database connection error',
       );
 
-      expect(billboardsRepository.create).toHaveBeenCalledWith({
+      expect(billboardMessagesRepository.create).toHaveBeenCalledWith({
         message: 'Test billboard message',
-        isWildcard: false,
-        organizationIds: ['org-123'],
-        createdBy: 'user-789',
+        organizationId: 'org-123',
         createdAt: new Date('2025-01-15T10:00:00Z'),
       });
     });
@@ -172,27 +171,28 @@ describe('CreateBillboardHandler', () => {
       // Arrange
       const commandData = {
         message: '',
-        isWildcard: false,
-        organizationIds: ['org-123'],
-        createdBy: 'user-789',
+        organizationId: 'org-123',
         createdAt: new Date('2025-01-15T10:00:00Z'),
       };
 
-      const command = new CreateBillboardCommand(commandData, mockMetadata);
+      const command = new CreateBillboardMessageCommand(
+        commandData,
+        mockMetadata,
+      );
 
-      const mockBillboardEntity: BillboardsEntity = {
-        _id: 'billboard-789',
+      const mockBillboardMessageEntity: BillboardMessagesEntity = {
+        _id: 'billboard-message-789',
         message: '',
-        isWildcard: false,
-        organizationIds: ['org-123'],
-        createdBy: 'user-789',
+        organizationId: 'org-123',
         createdAt: new Date('2025-01-15T10:00:00Z'),
         isDeleted: false,
         deletedAt: null,
         deletedBy: null,
       };
 
-      billboardsRepository.create.mockResolvedValue(mockBillboardEntity);
+      billboardMessagesRepository.create.mockResolvedValue(
+        mockBillboardMessageEntity,
+      );
 
       // Act
       const result = await handler.execute(command);

@@ -28,7 +28,8 @@ export abstract class XlsxTableParser<T> {
     try {
       workbook = XLSX.read(buffer);
     } catch (error) {
-      const reason = error instanceof Error ? error.message : String(error ?? 'unknown');
+      const reason =
+        error instanceof Error ? error.message : String(error ?? 'unknown');
       return {
         rows: [],
         errors: [`Failed to read workbook: ${reason}`],
@@ -73,7 +74,8 @@ export abstract class XlsxTableParser<T> {
         i += 1;
       } else {
         const rowNumber = i + 1;
-        const addError: ErrorReporter = (message) => errors.push(`Row ${rowNumber}: ${message}`);
+        const addError: ErrorReporter = (message) =>
+          errors.push(`Row ${rowNumber}: ${message}`);
 
         const parsed = this.mapRow(cells, rowNumber, header, addError);
         if (parsed) {
@@ -106,6 +108,7 @@ export abstract class XlsxTableParser<T> {
    * @param {boolean} trim - Whether to trim whitespace from the cell.
    * @returns {string} The normalized cell value.
    */
+  // eslint-disable-next-line class-methods-use-this
   private normalizeCell(value: any, trim: boolean): string {
     if (value === null || value === undefined) {
       return '';
@@ -121,6 +124,7 @@ export abstract class XlsxTableParser<T> {
    * @param {string[]} cells - The cells of the row.
    * @returns {boolean} True if the row should be skipped, otherwise false.
    */
+  // eslint-disable-next-line class-methods-use-this
   private shouldSkipRow(cells: string[]): boolean {
     return cells.every((cell) => cell.length === 0);
   }

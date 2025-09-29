@@ -1,3 +1,3 @@
-import { GetAllBillboardsHandler } from './get-all-billboards.handler';
+import { GetAllBillboardMessagesHandler } from './get-all-billboard-messages.handler';
 
-export const QueryHandlers = [GetAllBillboardsHandler];
+export const QueryHandlers = [GetAllBillboardMessagesHandler];

@@ -1,11 +1,11 @@
 /**
- * @type ParsedBillboardRow
- * @description Represents a single row parsed from the billboard Excel file.
+ * @type ParsedBillboardMessageRow
+ * @description Represents a single row parsed from the billboard message Excel file.
+ * Each row creates a separate entity.
  */
-export type ParsedBillboardRow = {
+export type ParsedBillboardMessageRow = {
   rowNumber: number;
-  isWildcard: boolean;
-  organizationIds: string[];
+  organizationId: string; // Single organization ID or '*' for all organizations
   message: string;
 };
 

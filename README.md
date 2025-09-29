@@ -12,11 +12,6 @@ This document provides a comprehensive overview of the Billboards module, includ
     - [Get Billboards](#get-billboards)
     - [Import Billboards from Excel](#import-billboards-from-excel)
     - [Delete Billboards](#delete-billboards)
-  - [Getting Started](#getting-started)
-    - [Prerequisites](#prerequisites)
-    - [Installation](#installation)
-    - [Running the Application](#running-the-application)
-  - [Error Handling](#error-handling)
 
 ## Module Overview
 
@@ -88,44 +83,3 @@ The Billboards module exposes the following API endpoints:
           }
         ]'
   ```
-
-## Getting Started
-
-To get started with the Billboards module, follow these steps:
-
-### Prerequisites
-
-- Node.js
-- npm or yarn
-- MongoDB
-
-### Installation
-
-1. Clone the repository:
-   ```bash
-   git clone <repository-url>
-   ```
-2. Install dependencies:
-   ```bash
-   npm install
-   ```
-
-### Running the Application
-
-To run the application in development mode, use the following command:
-
-```bash
-npm run start:dev
-```
-
-## Error Handling
-
-The Billboards module includes robust error handling to ensure a reliable and predictable API. When an error occurs, the API will return a meaningful error message with an appropriate HTTP status code. Common error responses include:
-
-- `400 Bad Request`: Returned when the request payload is invalid or missing required parameters.
-- `401 Unauthorized`: Returned when the request is not authenticated.
-- `403 Forbidden`: Returned when the authenticated user does not have permission to perform the requested action.
-- `404 Not Found`: Returned when the requested resource is not found.
-- `500 Internal Server Error`: Returned for unexpected server-side errors.
-
-By following this documentation, you can effectively integrate with and extend the Billboards module.
