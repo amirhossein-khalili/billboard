@@ -37,21 +37,21 @@ This layered architecture ensures that the module is modular, scalable, and easy
 
 The Billboards module exposes the following API endpoints:
 
-### Get Billboards
+### Get Billboard Messages
 
-- **Endpoint**: `GET /api/v1/billboards`
-- **Description**: Retrieves a list of billboards for the authenticated user's organization.
+- **Endpoint**: `GET /api/v1/billboards/organization/:organizationId/messages`
+- **Description**: Retrieves a list of billboard messages for the authenticated user's organization.
 - **Response**:
-  - `200 OK`: Returns a list of billboards.
+  - `200 OK`: Returns a list of billboard messages.
 - **Example**:
   ```bash
-  curl -X GET /api/v1/billboards
+  curl -X GET /api/v1/billboards/organization/org-123/messages
   ```
 
-### Import Billboards from Excel
+### Import Billboard Messages from Excel
 
-- **Endpoint**: `POST /api/v1/billboards/import`
-- **Description**: Imports billboards from an Excel file. The file should contain columns for organization ID and message.
+- **Endpoint**: `POST /api/v1/billboards/messages/import`
+- **Description**: Imports billboard messages from an Excel file. The file should contain columns for organization ID and message.
 - **Request**:
   - **Headers**: `Content-Type: multipart/form-data`
   - **Body**: An Excel file (`.xlsx`) with the required columns.
@@ -59,27 +59,18 @@ The Billboards module exposes the following API endpoints:
   - `201 Created`: Returns the result of the import operation, including the number of created billboards and any errors.
 - **Example**:
   ```bash
-  curl -X POST /api/v1/billboards/import \
+  curl -X POST /api/v1/billboards/messages/import \
     -H "Content-Type: multipart/form-data" \
     -F "file=@/path/to/your/file.xlsx"
   ```
 
-### Delete Billboards
+### Delete Billboard Message
 
-- **Endpoint**: `POST /api/v1/billboards/delete`
-- **Description**: Deletes billboards in bulk based on the provided organization and billboard IDs.
-- **Request**:
-  - **Body**: An array of objects, each containing `organizationId` and `billboardId`.
+- **Endpoint**: `DELETE /api/v1/billboards/messages/:billboardMessageId`
+- **Description**: Deletes a single billboard message by ID.
 - **Response**:
-  - `200 OK`: Returns the outcome of the bulk delete operation, including successes and failures.
+  - `200 OK`: Returns the outcome of the delete operation.
 - **Example**:
   ```bash
-  curl -X POST /api/v1/billboards/delete \
-    -H "Content-Type: application/json" \
-    -d '[
-          {
-            "organizationId": "org-123",
-            "billboardId": "billboard-456"
-          }
-        ]'
+  curl -X DELETE /api/v1/billboards/messages/billboard-message-456
   ```

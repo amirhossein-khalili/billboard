@@ -46,7 +46,6 @@ describe('CreateBillboardMessageHandler', () => {
     );
     billboardMessagesRepository = module.get('IBillboardMessagesRepository');
 
-    // Mock logger methods
     jest.spyOn(Logger.prototype, 'verbose').mockImplementation();
   });
 
@@ -56,7 +55,6 @@ describe('CreateBillboardMessageHandler', () => {
 
   describe('execute', () => {
     it('should successfully create a billboard message for specific organization', async () => {
-      // Arrange
       const commandData = {
         message: 'Test billboard message',
         organizationId: 'org-123',
@@ -82,10 +80,8 @@ describe('CreateBillboardMessageHandler', () => {
         mockBillboardMessageEntity,
       );
 
-      // Act
       const result = await handler.execute(command);
 
-      // Assert
       expect(Logger.prototype.verbose).toHaveBeenCalledWith(
         'CreateBillboardMessageHandler executed.',
       );
@@ -100,7 +96,6 @@ describe('CreateBillboardMessageHandler', () => {
     });
 
     it('should create a billboard message for all organizations using asterisk', async () => {
-      // Arrange
       const commandData = {
         message: 'Global announcement',
         organizationId: '*',
@@ -126,10 +121,8 @@ describe('CreateBillboardMessageHandler', () => {
         mockBillboardMessageEntity,
       );
 
-      // Act
       const result = await handler.execute(command);
 
-      // Assert
       expect(billboardMessagesRepository.create).toHaveBeenCalledWith({
         message: 'Global announcement',
         organizationId: '*',
@@ -140,7 +133,6 @@ describe('CreateBillboardMessageHandler', () => {
     });
 
     it('should handle repository errors gracefully', async () => {
-      // Arrange
       const commandData = {
         message: 'Test billboard message',
         organizationId: 'org-123',
@@ -155,7 +147,6 @@ describe('CreateBillboardMessageHandler', () => {
 
       billboardMessagesRepository.create.mockRejectedValue(error);
 
-      // Act & Assert
       await expect(handler.execute(command)).rejects.toThrow(
         'Database connection error',
       );
@@ -168,7 +159,6 @@ describe('CreateBillboardMessageHandler', () => {
     });
 
     it('should handle empty message', async () => {
-      // Arrange
       const commandData = {
         message: '',
         organizationId: 'org-123',
@@ -194,10 +184,8 @@ describe('CreateBillboardMessageHandler', () => {
         mockBillboardMessageEntity,
       );
 
-      // Act
       const result = await handler.execute(command);
 
-      // Assert
       expect(result.message).toBe('');
     });
   });

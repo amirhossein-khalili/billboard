@@ -54,7 +54,6 @@ describe('GetAllBillboardMessagesHandler', () => {
     );
     billboardMessagesRepository = module.get('IBillboardMessagesRepository');
 
-    // Spy on logger methods
     loggerSpy = jest.spyOn(Logger.prototype, 'verbose').mockImplementation();
   });
 
@@ -64,7 +63,6 @@ describe('GetAllBillboardMessagesHandler', () => {
 
   describe('execute', () => {
     it('should fetch billboard messages for a specific organization', async () => {
-      // Arrange
       const queryData = {
         organizationId: 'org-123',
       };
@@ -88,10 +86,8 @@ describe('GetAllBillboardMessagesHandler', () => {
         mockBillboardMessages,
       );
 
-      // Act
       const result = await handler.execute(query);
 
-      // Assert
       expect(loggerSpy).toHaveBeenCalledWith(
         'Fetching billboard messages for organizationId=org-123',
       );
@@ -107,7 +103,6 @@ describe('GetAllBillboardMessagesHandler', () => {
     });
 
     it('should fetch all billboard messages when organizationId is asterisk', async () => {
-      // Arrange
       const queryData = {
         organizationId: '*',
       };
@@ -136,10 +131,8 @@ describe('GetAllBillboardMessagesHandler', () => {
         mockBillboardMessages,
       );
 
-      // Act
       const result = await handler.execute(query);
 
-      // Assert
       expect(loggerSpy).toHaveBeenCalledWith(
         'Fetching billboard messages for organizationId=all',
       );
@@ -155,7 +148,6 @@ describe('GetAllBillboardMessagesHandler', () => {
     });
 
     it('should fetch all billboard messages when organizationId is null', async () => {
-      // Arrange
       const queryData = {
         organizationId: null,
       };
@@ -179,10 +171,8 @@ describe('GetAllBillboardMessagesHandler', () => {
         mockBillboardMessages,
       );
 
-      // Act
       const result = await handler.execute(query);
 
-      // Assert
       expect(loggerSpy).toHaveBeenCalledWith(
         'Fetching billboard messages for organizationId=all',
       );
@@ -197,7 +187,6 @@ describe('GetAllBillboardMessagesHandler', () => {
     });
 
     it('should handle undefined organizationId', async () => {
-      // Arrange
       const queryData = {
         organizationId: undefined,
       };
@@ -210,10 +199,8 @@ describe('GetAllBillboardMessagesHandler', () => {
         mockBillboardMessages,
       );
 
-      // Act
       const result = await handler.execute(query);
 
-      // Assert
       expect(loggerSpy).toHaveBeenCalledWith(
         'Fetching billboard messages for organizationId=all',
       );
@@ -228,7 +215,6 @@ describe('GetAllBillboardMessagesHandler', () => {
     });
 
     it('should return empty array when no billboard messages found', async () => {
-      // Arrange
       const queryData = {
         organizationId: 'org-999',
       };
@@ -237,10 +223,8 @@ describe('GetAllBillboardMessagesHandler', () => {
 
       billboardMessagesRepository.findAllForOrganization.mockResolvedValue([]);
 
-      // Act
       const result = await handler.execute(query);
 
-      // Assert
       expect(result).toEqual([]);
       expect(
         billboardMessagesRepository.findAllForOrganization,
@@ -250,7 +234,6 @@ describe('GetAllBillboardMessagesHandler', () => {
     });
 
     it('should handle repository errors', async () => {
-      // Arrange
       const queryData = {
         organizationId: 'org-123',
       };
@@ -262,7 +245,6 @@ describe('GetAllBillboardMessagesHandler', () => {
         error,
       );
 
-      // Act & Assert
       await expect(handler.execute(query)).rejects.toThrow(
         'Database connection error',
       );
@@ -275,7 +257,6 @@ describe('GetAllBillboardMessagesHandler', () => {
     });
 
     it('should pass additional query data to repository', async () => {
-      // Arrange
       const queryData = {
         organizationId: 'org-123',
         isActive: true,
@@ -287,10 +268,8 @@ describe('GetAllBillboardMessagesHandler', () => {
 
       billboardMessagesRepository.findAllForOrganization.mockResolvedValue([]);
 
-      // Act
       await handler.execute(query);
 
-      // Assert
       expect(
         billboardMessagesRepository.findAllForOrganization,
       ).toHaveBeenCalledWith({
@@ -302,7 +281,6 @@ describe('GetAllBillboardMessagesHandler', () => {
     });
 
     it('should return billboard messages with mixed organization assignments', async () => {
-      // Arrange
       const queryData = {
         organizationId: 'org-123',
       };
@@ -326,10 +304,8 @@ describe('GetAllBillboardMessagesHandler', () => {
         mockBillboardMessages,
       );
 
-      // Act
       const result = await handler.execute(query);
 
-      // Assert
       expect(result).toHaveLength(2);
       expect(result[0].organizationId).toBe('org-123');
       expect(result[1].organizationId).toBe('*');

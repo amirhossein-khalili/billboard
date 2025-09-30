@@ -2,10 +2,8 @@ import * as XLSX from 'xlsx';
 import { XlsxTableParser } from './xlsx-table-parser';
 import { XlsxParseOptions } from './types';
 
-// Mock the xlsx library
 jest.mock('xlsx');
 
-// Test implementation for abstract class
 class TestParser extends XlsxTableParser<{ id: string; name: string }> {
   protected validateHeader(header: string[]): string[] {
     const errors: string[] = [];
@@ -132,7 +130,7 @@ describe('XlsxTableParser', () => {
       const mockData = [
         ['id', 'name'],
         ['1', 'John'],
-        ['', ''], // Empty row
+        ['', ''],
         ['2', 'Jane'],
       ];
 
@@ -214,7 +212,7 @@ describe('XlsxTableParser', () => {
     it('should report row-level errors', () => {
       const mockData = [
         ['id', 'name'],
-        ['', 'John'], // Missing ID
+        ['', 'John'],
         ['2', 'Jane'],
       ];
 
