@@ -1,0 +1,76 @@
+# Billboards Module
+
+This document provides a comprehensive overview of the Billboards module, including its architecture, API endpoints, and usage examples.
+
+## Table of Contents
+
+- [Billboards Module](#billboards-module)
+  - [Table of Contents](#table-of-contents)
+  - [Module Overview](#module-overview)
+  - [Architecture](#architecture)
+  - [API Endpoints](#api-endpoints)
+    - [Get Billboards](#get-billboards)
+    - [Import Billboards from Excel](#import-billboards-from-excel)
+    - [Delete Billboards](#delete-billboards)
+
+## Module Overview
+
+The Billboards module is a key component of the application, designed to manage and display billboard messages across various organizations. It offers functionalities for retrieving, creating, and deleting billboards, with a primary focus on bulk operations to enhance efficiency. The module is built with a clean architecture, separating concerns into distinct layers for business logic, data access, and API exposure. This modular design ensures maintainability and scalability, making it easy to extend and adapt to future requirements.
+
+A standout feature of the Billboards module is its ability to import data from Excel files, streamlining the process of adding multiple billboards at once. This functionality is particularly useful for administrators who need to manage large volumes of data without manual entry. The module also supports wildcard billboards, which can be broadcast to all organizations, providing a flexible way to communicate important announcements.
+
+## Architecture
+
+The Billboards module follows a clean, domain-driven architecture that separates concerns into four distinct layers:
+
+- **Domain Layer**: This layer contains the core business logic and entities of the module, such as `BillboardsEntity` and `UserBillboardStateEntity`. It is completely independent of other layers and defines the foundational data structures and business rules.
+
+- **Application Layer**: This layer orchestrates the application's use cases and business logic. It contains services like `BillboardsService`, which handles tasks such as retrieving billboards, importing data from Excel, and processing deletions. The application layer also includes commands and queries, following the Command Query Responsibility Segregation (CQRS) pattern to separate read and write operations.
+
+- **Infrastructure Layer**: This layer is responsible for all external-facing concerns, such as database interactions and communication with other services. It includes repositories like `BillboardsRepository` and `UserBillboardsStateRepository`, which handle data persistence and retrieval.
+
+- **Interface Layer**: This layer exposes the module's functionality to the outside world through a well-defined API. It includes controllers like `BillboardController`, which handle incoming HTTP requests, validate data, and delegate tasks to the application layer.
+
+This layered architecture ensures that the module is modular, scalable, and easy to maintain. Each layer has a specific responsibility, and dependencies are managed to flow inward, with the domain layer at the core.
+
+## API Endpoints
+
+The Billboards module exposes the following API endpoints:
+
+### Get Billboard Messages
+
+- **Endpoint**: `GET /api/v1/billboards/organization/:organizationId/messages`
+- **Description**: Retrieves a list of billboard messages for the authenticated user's organization.
+- **Response**:
+  - `200 OK`: Returns a list of billboard messages.
+- **Example**:
+  ```bash
+  curl -X GET /api/v1/billboards/organization/org-123/messages
+  ```
+
+### Import Billboard Messages from Excel
+
+- **Endpoint**: `POST /api/v1/billboards/messages/import`
+- **Description**: Imports billboard messages from an Excel file. The file should contain columns for organization ID and message.
+- **Request**:
+  - **Headers**: `Content-Type: multipart/form-data`
+  - **Body**: An Excel file (`.xlsx`) with the required columns.
+- **Response**:
+  - `201 Created`: Returns the result of the import operation, including the number of created billboards and any errors.
+- **Example**:
+  ```bash
+  curl -X POST /api/v1/billboards/messages/import \
+    -H "Content-Type: multipart/form-data" \
+    -F "file=@/path/to/your/file.xlsx"
+  ```
+
+### Delete Billboard Message
+
+- **Endpoint**: `DELETE /api/v1/billboards/messages/:billboardMessageId`
+- **Description**: Deletes a single billboard message by ID.
+- **Response**:
+  - `200 OK`: Returns the outcome of the delete operation.
+- **Example**:
+  ```bash
+  curl -X DELETE /api/v1/billboards/messages/billboard-message-456
+  ```

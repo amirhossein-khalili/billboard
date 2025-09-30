@@ -1,2 +1,3 @@
-export * from './billboard.repository';
-export * from './user-billboard-state.repository';
+export * from './repositories/billboard-message.repository';
+export * from './repositories/user-billboard-message-state.repository';
+export * from './import-result.interface';

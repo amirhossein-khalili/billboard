@@ -1,0 +1,1 @@
+export const BILLBOARD_WILDCARD_ORGANIZATION_ID = '*';

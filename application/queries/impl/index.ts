@@ -1,5 +1,9 @@
 /* eslint-disable max-classes-per-file */
-import { GetAllBillboardsDto } from '../../../domain/dtos';
+import { GetAllBillboardMessagesDto } from '../../../domain/dtos';
 import { BaseQuery } from './base-query.query';
 
-export class GetAllBillboards extends BaseQuery<GetAllBillboardsDto> {}
+/**
+ * @class GetAllBillboardMessages
+ * @description Query to get all billboard messages for an organization.
+ */
+export class GetAllBillboardMessages extends BaseQuery<GetAllBillboardMessagesDto> {}

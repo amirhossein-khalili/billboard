@@ -1,9 +1,10 @@
 import {
   BadRequestException,
-  Body,
   Controller,
+  Delete,
   Get,
   Headers,
+  Logger,
   Post,
   Request,
   UploadedFile,
@@ -23,55 +24,90 @@ import {
   ApiTags,
 } from '@nestjs/swagger';
 import { FileInterceptor } from '@nestjs/platform-express';
-import { Express } from 'express';
+import { Express, Request as ExpressRequest } from 'express';
 import { BillboardsService } from '../application/billboards.service';
 import {
-  CreateBillboardsDto,
-  DeleteOrganizationBillboardDto,
-  GetAllBillboardsDto,
-  GetBillboardsResponseDto,
+  DeleteBillboardMessageDto,
+  GetAllBillboardMessagesDto,
+  GetBillboardMessagesResponseDto,
 } from '../domain/dtos';
 import 'multer';
 
+/**
+ * @class BillboardController
+ * @description Handles HTTP requests for managing billboards.
+ */
 @ApiTags('billboards')
 @ApiBearerAuth()
 @Controller('/api/v1/billboards')
 export class BillboardController extends BaseController {
+  protected readonly logger = new Logger(BillboardController.name);
+
   constructor(private readonly svc: BillboardsService) {
     super();
   }
 
-  @Get('')
-  @RpcQuery('billboards', 'billboards', 'get_billboards')
-  @ApiOkResponse({ description: 'Billboards…', type: GetBillboardsResponseDto })
-  @SwaggerGet('return a billboards', false)
-  async getBillboards(
-    @Param() data: GetAllBillboardsDto,
+  /**
+   * @method getBillboardMessages
+   * @description Retrieves a list of billboard_messages for the authenticated user's organization.
+   * @param {GetAllBillboardMessagesDto} data - DTO for getting all billboard_messages.
+   * @param {any} headers - Request headers.
+   * @param {any} req - The request object.
+   * @returns {Promise<GetBillboardMessagesResponseDto>} A promise that resolves
+   * to the billboard_messages
+   * response.
+   */
+  @Get('/organization/:organizationId/messages')
+  @RpcQuery('billboards', 'billboards', 'get_billboards_messages')
+  @ApiOkResponse({
+    description: 'Billboard Messages…',
+    type: GetBillboardMessagesResponseDto,
+  })
+  @SwaggerGet('return billboard messages', false)
+  async getBillboardMessages(
+  @Param() data: GetAllBillboardMessagesDto,
     @Headers() headers: any,
-    @Request() req: any,
   ) {
     const { __meta, ...d } = data;
-    return this.svc.getBillboards(
+    return this.svc.getBillboardMessages(
       d,
-      await this.getMetadata(data, headers, req, { pagination: false }),
+      await this.getMetadata(data, headers, { pagination: false }),
     );
   }
 
   /**
-   * Imports billboards from an Excel file.
-   * The Excel file should have columns for organization ID and message.
+   * @method importBillboardMessages
+   * @description Imports billboard_messages from an Excel file. The file should
+   * have columns for organization ID (use '*' for all organizations) and message.
+   * @param {Express.Multer.File} file - The uploaded Excel file.
+   * @param {any} headers - Request headers.
+   * @param {any} req - The request object.
+   * @returns {Promise<any>} The result of the import operation.
+   * @throws {BadRequestException} If no file is provided.
    */
-  @Post('/import')
+  @Post('/messages/import')
   @UseInterceptors(FileInterceptor('file'))
   @ApiConsumes('multipart/form-data')
   @ApiBody({
-    description: 'Excel file (.xlsx) with columns: Org ID, Message',
-    type: CreateBillboardsDto,
+    description:
+      'Upload an Excel workbook (.xlsx) with two columns: "Org ID" (use "*" for all orgs) and "Message".',
+    schema: {
+      type: 'object',
+      required: ['file'],
+      properties: {
+        file: {
+          type: 'string',
+          format: 'binary',
+          description:
+            'Excel file (.xlsx) containing rows like `uuid of organization id  →  md message`',
+        },
+      },
+    },
   })
-  async importBillboards(
-    @UploadedFile() file: Express.Multer.File,
-    @Headers() headers: any,
-    @Request() req: any,
+  async importBillboardMessages(
+  @UploadedFile() file: Express.Multer.File,
+    @Headers() headers: Record<string, string | string[]>,
+    @Request() req: ExpressRequest,
   ) {
     if (!file || !file.buffer) {
       throw new BadRequestException('file is required (xlsx)');
@@ -79,77 +115,26 @@ export class BillboardController extends BaseController {
     const meta = await this.getMetadata({}, headers, req, {
       pagination: false,
     });
-    return this.svc.importFromExcel(file.buffer, meta);
+    return this.svc.importMessagesFromExcel(file.buffer, meta);
   }
 
-  @Post('/delete')
-  @ApiBody({
-    schema: {
-      type: 'array',
-      items: {
-        type: 'object',
-        required: ['organizationId', 'billboardId'],
-        properties: {
-          organizationId: {
-            type: 'string',
-            description:
-              'Organization identifier; also supports `orgnizationid` typo.',
-            example: '2d0fa324-f699-4576-87d2-1d680ee50f53',
-          },
-          billboardId: {
-            type: 'string',
-            description: 'Billboard message identifier.',
-            example: 'bb-123456',
-          },
-        },
-      },
-    },
-  })
-  @ApiOkResponse({
-    description: 'Bulk delete outcome for each requested billboard.',
-    schema: {
-      type: 'object',
-      properties: {
-        status: { type: 'boolean' },
-        data: {
-          type: 'object',
-          properties: {
-            successes: {
-              type: 'array',
-              items: {
-                type: 'object',
-                properties: {
-                  organizationId: { type: 'string' },
-                  billboardId: { type: 'string' },
-                  fullyDeleted: { type: 'boolean' },
-                },
-              },
-            },
-            failures: {
-              type: 'array',
-              items: {
-                type: 'object',
-                properties: {
-                  organizationId: { type: 'string' },
-                  billboardId: { type: 'string' },
-                  reason: { type: 'string' },
-                },
-              },
-            },
-          },
-        },
-        meta: { type: 'object' },
-      },
-    },
-  })
-  async deleteBillboards(
-    @Body() payload: DeleteOrganizationBillboardDto[],
-    @Headers() headers: any,
-    @Request() req: any,
+  /**
+   * @method deleteBillboardMessage
+   * @description Deletes a single billboard message by ID.
+   * @param {DeleteBillboardMessageDto} param - The billboard message to delete.
+   * @param {Record<string, string | string[]>} headers - Request headers.
+   * @param {ExpressRequest} req - The request object.
+   * @returns {Promise<any>} A promise that resolves to the delete outcome.
+   */
+  @Delete('/messages/:billboardMessageId')
+  async deleteBillboardMessage(
+  @Param() param: DeleteBillboardMessageDto,
+    @Headers() headers: Record<string, string | string[]>,
+    @Request() req: ExpressRequest,
   ) {
     const meta = await this.getMetadata({}, headers, req, {
       pagination: false,
     });
-    return this.svc.deleteOrganizationBillboards(payload, meta);
+    return this.svc.deleteBillboardMessage(param, meta);
   }
 }

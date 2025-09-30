@@ -1,83 +1,62 @@
-import { ForbiddenException, Injectable, Logger } from '@nestjs/common';
-import { CommandBus, EventBus, QueryBus } from '@nestjs/cqrs';
+import { Injectable, Logger } from '@nestjs/common';
+import { CommandBus, QueryBus } from '@nestjs/cqrs';
 import { AmqpConnection } from '@golevelup/nestjs-rabbitmq';
 import {
   IMetadata,
   BaseService,
-  IQueryResult,
-  findOrganizationByPosition,
+  ICommandResult,
 } from 'com.chargoon.cloud.svc.common';
-import { ConfigService } from '@nestjs/config';
 import {
-  CreateBillboardDto,
-  DeleteOrganizationBillboardDto,
-  GetAllBillboardsDto,
-  GetBillboardsResponseDto,
+  CreateBillboardMessageDto,
+  DeleteBillboardMessageDto,
+  GetAllBillboardMessagesDto,
+  GetBillboardMessagesResponseDto,
+  DeleteBillboardMessagePayloadDto,
 } from '../domain/dtos';
-import { BillboardsXlsxParser } from './utils';
+import { BillboardMessagesXlsxParser } from './utils';
 import {
-  CreateBillboardCommand,
-  DeleteOrganizationBillboardCommand,
+  CreateBillboardMessageCommand,
+  DeleteBillboardMessageCommand,
 } from './commands/impls';
-import { GetAllBillboards } from './queries/impl';
+import { GetAllBillboardMessages } from './queries/impl';
+import { IImportResult } from '../domain/interfaces';
 
+/**
+ * @class BillboardMessagesService
+ * @description This service handles the business logic for
+ * billboard_messages. It extends a BaseService
+ * and uses CQRS for handling commands and queries.
+ */
 @Injectable()
 export class BillboardsService extends BaseService {
   public readonly logger = new Logger(BillboardsService.name);
-
-  protected readonly documentsUrl: string;
 
   constructor(
     protected readonly commandBus: CommandBus,
     protected readonly queryBus: QueryBus,
     protected readonly amqpConnection: AmqpConnection,
-    protected readonly eventBus: EventBus,
-    protected readonly configService: ConfigService,
-    private readonly billboardsXlsxParser: BillboardsXlsxParser,
+    private readonly billboardMessagesXlsxParser: BillboardMessagesXlsxParser,
   ) {
     super(amqpConnection);
   }
 
-  private static getUserId(meta?: IMetadata): string | null {
-    const anyMeta: any = meta || {};
-    return anyMeta?.user?.id || anyMeta?.user?._id || anyMeta?.userId || null;
-  }
-
-  private static getAdminId(meta?: IMetadata): string {
-    return BillboardsService.getUserId(meta) ?? 'system';
-  }
-
-  async getBillboards(
-    data: GetAllBillboardsDto,
+  /**
+   * @method getBillboardMessages
+   * @description Retrieves billboard_messages for a specific organization.
+   * @param {GetAllBillboardMessagesDto} data - The DTO for getting
+   * all billboard_messages.
+   * @param {IMetadata} meta - The metadata.
+   * @returns {Promise<GetBillboardMessagesResponseDto>} A promise that resolves
+   * to the billboard_messages
+   * response.
+   */
+  async getBillboardMessages(
+    data: GetAllBillboardMessagesDto,
     meta: IMetadata,
-  ): Promise<GetBillboardsResponseDto> {
-    this.logger.verbose(`getBillboards: org=${data.organizationId}}`);
-
-    const organization = findOrganizationByPosition(
-      meta.requester.position,
-      meta,
-    );
-    if (!organization) {
-      throw new ForbiddenException(
-        `requester with positionId ${meta.requester.position.id}
-         doesn't exist in any organizations`,
-      );
-    }
-
-    const organizationId = organization.id;
-
+  ): Promise<GetBillboardMessagesResponseDto> {
     const result = await this.queryBus.execute(
-      new GetAllBillboards(
-        {
-          ...data,
-          organizationId,
-        },
-        {
-          ...meta,
-        },
-      ),
+      new GetAllBillboardMessages(data, meta),
     );
-
     return {
       status: true,
       data: result,
@@ -86,22 +65,25 @@ export class BillboardsService extends BaseService {
   }
 
   /**
-   * Import billboards from Excel
-   * @param fileBuffer - The buffer of the Excel file.
-   * @param meta - The metadata.
-   * @returns The result of the import operation.
+   * @method importFromExcel
+   * @description Imports billboard_messages from an Excel file.
+   * @param {Buffer} fileBuffer - The buffer of the Excel file.
+   * @param {IMetadata} meta - The metadata.
+   * @returns {Promise<ICommandResult<IImportResult>>} The result of the import operation.
    */
-  async importFromExcel(
+  async importMessagesFromExcel(
     fileBuffer: Buffer,
     meta: IMetadata,
-  ): Promise<IQueryResult> {
-    const adminId = BillboardsService.getAdminId(meta);
-    const { rows, errors } = this.billboardsXlsxParser.parse(fileBuffer);
-
+  ): Promise<ICommandResult<IImportResult>> {
+    const { rows, errors } = this.billboardMessagesXlsxParser.parse(fileBuffer);
     if (!rows.length && errors.length) {
       return {
-        status: false,
-        data: { createdCount: 0, createdIds: [], errors },
+        success: false,
+        data: {
+          createdCount: 0,
+          createdIds: [],
+          errors,
+        },
         meta: {} as IMetadata,
       };
     }
@@ -109,22 +91,20 @@ export class BillboardsService extends BaseService {
     const createdIds: string[] = [];
     const createPromises = rows.map(async (r) => {
       try {
-        const data: CreateBillboardDto = {
+        const data: CreateBillboardMessageDto = {
           message: r.message,
-          isWildcard: r.isWildcard,
-          organizationIds: r.isWildcard ? [] : r.organizationIds,
-          createdBy: adminId,
+          organizationId: r.organizationId,
           createdAt: new Date(),
         };
         const created = await this.commandBus.execute(
-          new CreateBillboardCommand(data, meta),
+          new CreateBillboardMessageCommand(data, meta),
         );
         return created._id;
       } catch (e: any) {
         errors.push(
           `Row ${r.rowNumber}: Failed to create message (${e?.message ?? 'unknown error'})`,
         );
-        return null; // indicate failure
+        return null;
       }
     });
 
@@ -132,15 +112,14 @@ export class BillboardsService extends BaseService {
     createdIds.push(
       ...results
         .filter(
-          (result): result is PromiseFulfilledResult<string> =>
-            result.status === 'fulfilled',
+          (result): result is PromiseFulfilledResult<string> => result.status === 'fulfilled',
         )
         .map((result) => result.value)
         .filter(Boolean),
     );
 
     return {
-      status: true,
+      success: true,
       data: {
         createdCount: createdIds.length,
         createdIds,
@@ -150,112 +129,32 @@ export class BillboardsService extends BaseService {
     };
   }
 
-  async deleteOrganizationBillboards(
-    rawItems: any,
+  /**
+   * @method deleteBillboardMessage
+   * @description Deletes a billboard message by ID.
+   * @param {DeleteBillboardMessageDto} data - The billboard message to delete.
+   * @param {IMetadata} meta - The metadata.
+   * @returns {Promise<ICommandResult<DeleteBillboardMessageDto>>} A promise that
+   * resolves to the delete outcome.
+   */
+  async deleteBillboardMessage(
+    data: DeleteBillboardMessageDto,
     meta: IMetadata,
-  ): Promise<{
-    status: boolean;
-    data: {
-      successes: {
-        organizationId: string;
-        billboardId: string;
-        fullyDeleted: boolean;
-      }[];
-      failures: {
-        organizationId?: string;
-        billboardId?: string;
-        reason: string;
-      }[];
+  ): Promise<ICommandResult<DeleteBillboardMessageDto>> {
+    const payload: DeleteBillboardMessagePayloadDto = {
+      ...data,
+      deletedBy: meta.user?.id || 'system',
+      deletedAt: new Date(),
     };
-    meta: IMetadata;
-  }> {
-    const adminId = BillboardsService.getAdminId(meta);
-    const deletedAt = new Date();
-    const items: any[] = Array.isArray(rawItems) ? rawItems : [];
 
-    const successes: {
-      organizationId: string;
-      billboardId: string;
-      fullyDeleted: boolean;
-    }[] = [];
-    const failures: {
-      organizationId?: string;
-      billboardId?: string;
-      reason: string;
-    }[] = [];
-
-    const normalizedItems: DeleteOrganizationBillboardDto[] = items
-      .map((item, index) => {
-        const organizationId =
-          item?.organizationId ??
-          item?.orgnizationId ??
-          item?.orgnizationid ??
-          item?.orgId;
-        const billboardId = item?.billboardId ?? item?._id ?? item?.id;
-
-        if (!organizationId || !billboardId) {
-          failures.push({
-            reason: `invalid_payload_at_index_${index}`,
-          });
-          return null;
-        }
-
-        return {
-          organizationId: String(organizationId).trim(),
-          billboardId: String(billboardId).trim(),
-        };
-      })
-      .filter(Boolean) as DeleteOrganizationBillboardDto[];
-
-    const commandPromises = normalizedItems.map((item) =>
-      this.commandBus.execute(
-        new DeleteOrganizationBillboardCommand(
-          {
-            organizationId: item.organizationId,
-            billboardId: item.billboardId,
-            deletedBy: adminId,
-            deletedAt,
-          },
-          meta,
-        ),
-      ),
+    await this.commandBus.execute(
+      new DeleteBillboardMessageCommand(payload, meta),
     );
 
-    const commandResults = await Promise.allSettled(commandPromises);
-
-    commandResults.forEach((result, idx) => {
-      const item = normalizedItems[idx];
-
-      if (result.status === 'fulfilled') {
-        if (result.value.removed) {
-          successes.push({
-            organizationId: item.organizationId,
-            billboardId: item.billboardId,
-            fullyDeleted: result.value.fullyDeleted,
-          });
-        } else {
-          failures.push({
-            organizationId: item.organizationId,
-            billboardId: item.billboardId,
-            reason: result.value.reason ?? 'not_removed',
-          });
-        }
-      } else {
-        failures.push({
-          organizationId: item.organizationId,
-          billboardId: item.billboardId,
-          reason: result.reason?.message ?? 'execution_error',
-        });
-      }
-    });
-
     return {
-      status: failures.length === 0,
-      data: {
-        successes,
-        failures,
-      },
-      meta: meta as IMetadata,
+      success: true,
+      data,
+      meta,
     };
   }
 }
