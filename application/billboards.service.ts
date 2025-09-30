@@ -21,12 +21,6 @@ import {
 import { GetAllBillboardMessages } from './queries/impl';
 import { IImportResult } from '../domain/interfaces';
 
-/**
- * @class BillboardMessagesService
- * @description This service handles the business logic for
- * billboard_messages. It extends a BaseService
- * and uses CQRS for handling commands and queries.
- */
 @Injectable()
 export class BillboardsService extends BaseService {
   public readonly logger = new Logger(BillboardsService.name);
@@ -40,16 +34,6 @@ export class BillboardsService extends BaseService {
     super(amqpConnection);
   }
 
-  /**
-   * @method getBillboardMessages
-   * @description Retrieves billboard_messages for a specific organization.
-   * @param {GetAllBillboardMessagesDto} data - The DTO for getting
-   * all billboard_messages.
-   * @param {IMetadata} meta - The metadata.
-   * @returns {Promise<GetBillboardMessagesResponseDto>} A promise that resolves
-   * to the billboard_messages
-   * response.
-   */
   async getBillboardMessages(
     data: GetAllBillboardMessagesDto,
     meta: IMetadata,
@@ -64,13 +48,6 @@ export class BillboardsService extends BaseService {
     };
   }
 
-  /**
-   * @method importFromExcel
-   * @description Imports billboard_messages from an Excel file.
-   * @param {Buffer} fileBuffer - The buffer of the Excel file.
-   * @param {IMetadata} meta - The metadata.
-   * @returns {Promise<ICommandResult<IImportResult>>} The result of the import operation.
-   */
   async importMessagesFromExcel(
     fileBuffer: Buffer,
     meta: IMetadata,
@@ -129,14 +106,6 @@ export class BillboardsService extends BaseService {
     };
   }
 
-  /**
-   * @method deleteBillboardMessage
-   * @description Deletes a billboard message by ID.
-   * @param {DeleteBillboardMessageDto} data - The billboard message to delete.
-   * @param {IMetadata} meta - The metadata.
-   * @returns {Promise<ICommandResult<DeleteBillboardMessageDto>>} A promise that
-   * resolves to the delete outcome.
-   */
   async deleteBillboardMessage(
     data: DeleteBillboardMessageDto,
     meta: IMetadata,

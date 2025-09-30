@@ -4,10 +4,6 @@ import { BaseQueryHandler } from 'com.chargoon.cloud.svc.common';
 import { GetAllBillboardMessages } from '../impl';
 import { IBillboardMessagesRepository } from '../../../domain/interfaces';
 
-/**
- * @class GetAllBillboardMessagesHandler
- * @description Query handler for retrieving all billboard messages for an organization.
- */
 @QueryHandler(GetAllBillboardMessages)
 export class GetAllBillboardMessagesHandler extends BaseQueryHandler<GetAllBillboardMessages> {
   private readonly logger = new Logger(GetAllBillboardMessagesHandler.name);
@@ -19,12 +15,6 @@ export class GetAllBillboardMessagesHandler extends BaseQueryHandler<GetAllBillb
     super();
   }
 
-  /**
-   * @method execute
-   * @description Executes the get all billboard messages query.
-   * @param {GetAllBillboardMessages} query - The query to execute.
-   * @returns {Promise<any>} A promise that resolves to the list of billboard messages.
-   */
   async execute(query: GetAllBillboardMessages) {
     const { organizationId } = query.data;
 

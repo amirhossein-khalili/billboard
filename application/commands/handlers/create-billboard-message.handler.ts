@@ -6,10 +6,6 @@ import { IBillboardMessagesRepository } from '../../../domain/interfaces';
 import { BillboardMessagesEntity } from '../../../domain/models';
 import { CreateBillboardMessageCommand } from '../impls';
 
-/**
- * @class CreateBillboardMessageHandler
- * @description Command handler for creating a new billboard message.
- */
 @CommandHandler(CreateBillboardMessageCommand)
 export class CreateBillboardMessageHandler
   extends BaseCommandHandler
@@ -25,13 +21,6 @@ export class CreateBillboardMessageHandler
     super(amqpConnection);
   }
 
-  /**
-   * @method execute
-   * @description Executes the create billboard message command.
-   * @param {CreateBillboardMessageCommand} command - The command to execute.
-   * @returns {Promise<BillboardMessagesEntity>} A promise that resolves
-   * to the created billboard message entity.
-   */
   async execute(
     command: CreateBillboardMessageCommand,
   ): Promise<BillboardMessagesEntity> {

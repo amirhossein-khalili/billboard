@@ -3,32 +3,28 @@ import { Document } from 'mongoose';
 
 export type BillboardMessagesDocument = BillboardMessagesEntity & Document;
 
-/**
- * @class BillboardMessageEntity
- * @description Represents a billboard message in the database.
- */
 @Schema({ collection: 'billboard_messages', timestamps: true })
 export class BillboardMessagesEntity {
   @Prop({ required: true })
-    _id: string;
+  _id: string;
 
   @Prop({ required: true })
-    message: string;
+  message: string;
 
   @Prop({ required: true })
-    organizationId: string;
+  organizationId: string;
 
   @Prop({ required: true, default: Date.now })
-    createdAt: Date;
+  createdAt: Date;
 
   @Prop({ default: false })
-    isDeleted: boolean;
+  isDeleted: boolean;
 
   @Prop({ default: null })
-    deletedAt: Date;
+  deletedAt: Date;
 
   @Prop({ default: null })
-    deletedBy: string;
+  deletedBy: string;
 }
 
 export const BillboardMessagesSchema = SchemaFactory.createForClass(

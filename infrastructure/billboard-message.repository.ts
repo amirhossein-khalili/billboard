@@ -9,15 +9,12 @@ import {
 } from '../domain/models';
 import {
   CreateBillboardMessageDto,
+  DeleteBillboardMessageAuditDto,
+  DeleteBillboardMessageOutcomeDto,
   GetAllBillboardMessagesDto,
 } from '../domain/dtos';
 import { BILLBOARD_WILDCARD_ORGANIZATION_ID } from '../domain/constants';
 
-/**
- * @class BillboardMessagesRepository
- * @description Implements the IBillboardMessagesRepository interface for interacting with the
- * billboard_messages collection in MongoDB.
- */
 @Injectable()
 export class BillboardMessagesRepository
 implements IBillboardMessagesRepository {
@@ -28,8 +25,8 @@ implements IBillboardMessagesRepository {
 
   async deleteBillboardMessage(
     billboardMessageId: string,
-    audit: { deletedBy: string; deletedAt: Date },
-  ): Promise<{ removed: boolean; fullyDeleted: boolean; reason?: string }> {
+    audit: DeleteBillboardMessageAuditDto,
+  ): Promise<DeleteBillboardMessageOutcomeDto> {
     const billboardMessage = await this.BillboardMessageModel.findOne({
       _id: billboardMessageId,
     }).exec();
@@ -58,13 +55,6 @@ implements IBillboardMessagesRepository {
     return { removed: true, fullyDeleted: true };
   }
 
-  /**
-   * @method create
-   * @description Creates a new billboard message document in the database.
-   *              Each Excel row should map to a single call to this method.
-   * @param {CreateBillboardMessageDto} data - The data for creating the new message.
-   * @returns {Promise<BillboardMessagesEntity>} Newly persisted billboard message entity.
-   */
   async create(
     data: CreateBillboardMessageDto,
   ): Promise<BillboardMessagesEntity> {
@@ -79,13 +69,6 @@ implements IBillboardMessagesRepository {
     }).save();
   }
 
-  /**
-   * @method findAllForOrganization
-   * @description Finds all active billboard messages for a given organization,
-   *              including records whose organizationId is BILLBOARD_WILDCARD_ORGANIZATION_ID.
-   * @param {GetAllBillboardMessagesDto} data - The DTO containing the organization ID.
-   * @returns {Promise<BillboardMessagesEntity[]>} Matching billboard message entities.
-   */
   async findAllForOrganization(
     data: GetAllBillboardMessagesDto,
   ): Promise<BillboardMessagesEntity[]> {
@@ -115,26 +98,21 @@ implements IBillboardMessagesRepository {
     ]).exec();
   }
 
-  /**
-   * @method deleteForOrganization
-   * @description Soft-deletes a billboard message. Deletes only when the stored organizationId
-   *  matches the requested organizationId (including BILLBOARD_WILDCARD_ORGANIZATION_ID).
-   * @param {string} billboardMessageId - The ID of the billboard message to delete.
-   * @param {string} organizationId - The organization scope of the deletion.
-   * @param {{ deletedBy: string; deletedAt: Date }} audit - Auditing information.
-   * @returns {Promise<{ removed: boolean; fullyDeleted: boolean }>} Outcome summary.
-   */
   async deleteForOrganization(
     billboardMessageId: string,
-    audit: { deletedBy: string; deletedAt: Date },
-  ): Promise<{ removed: boolean; fullyDeleted: boolean }> {
+    audit: DeleteBillboardMessageAuditDto,
+  ): Promise<DeleteBillboardMessageOutcomeDto> {
     const billboardMessage = await this.BillboardMessageModel.findOne({
       _id: billboardMessageId,
       isDeleted: false,
     }).exec();
 
     if (!billboardMessage) {
-      return { removed: false, fullyDeleted: false };
+      return {
+        removed: false,
+        fullyDeleted: false,
+        reason: 'Billboard message not found or already deleted',
+      };
     }
 
     billboardMessage.isDeleted = true;

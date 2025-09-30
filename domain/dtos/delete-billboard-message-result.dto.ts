@@ -1,18 +1,17 @@
-/* eslint-disable max-classes-per-file */
 import { IsBoolean, IsString } from 'class-validator';
 
 export class BillboardMessageResultDto {
   @IsString()
-    id: string;
+  id: string;
 
   @IsBoolean()
-    removed: boolean;
+  removed: boolean;
 
   @IsBoolean()
-    fullyDeleted: boolean;
+  fullyDeleted: boolean;
 
   @IsString()
-    reason?: string;
+  reason?: string;
 }
 
 export class DeleteBillboardMessageResultDto {

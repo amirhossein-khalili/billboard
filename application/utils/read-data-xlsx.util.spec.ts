@@ -95,14 +95,12 @@ describe('BillboardMessagesXlsxParser', () => {
         (msg) => allErrors.push(msg),
       );
 
-      // Verify no errors were added
       expect(errors).toHaveLength(0);
       expect(allErrors).toHaveLength(1);
       expect(allErrors[0]).toContain('UUID or "*"');
 
-      // Verify the wildcard was properly normalized
       expect(starResult?.organizationId).toBe('*');
-      expect(allResult).toBeNull(); // "all" is not a valid wildcard in current implementation
+      expect(allResult).toBeNull();
     });
 
     it('rejects rows without organization id', () => {

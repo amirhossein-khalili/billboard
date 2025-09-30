@@ -13,7 +13,6 @@ class TestParser extends XlsxTableParser<{ id: string; name: string }> {
     return (this as any).shouldSkipRow(cells);
   }
 
-  // eslint-disable-next-line class-methods-use-this
   protected validateHeader(header: string[]): string[] {
     const errors: string[] = [];
     if (!header.includes('id')) errors.push('Missing id column');
@@ -21,7 +20,6 @@ class TestParser extends XlsxTableParser<{ id: string; name: string }> {
     return errors;
   }
 
-  // eslint-disable-next-line class-methods-use-this
   protected mapRow(
     cells: string[],
     rowNumber: number,

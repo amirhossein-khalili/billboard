@@ -2,7 +2,10 @@ import { CommandHandler, ICommandHandler } from '@nestjs/cqrs';
 import { Inject, Logger } from '@nestjs/common';
 import { BaseCommandHandler } from 'com.chargoon.cloud.svc.common';
 import { AmqpConnection } from '@golevelup/nestjs-rabbitmq';
-import { DeleteBillboardMessageResultDto } from 'src/billboards/domain/dtos/delete-billboard-message-result.dto';
+import {
+  DeleteBillboardMessageAuditDto,
+  DeleteBillboardMessageResultDto,
+} from 'src/billboards/domain/dtos';
 import { IBillboardMessagesRepository } from '../../../domain/interfaces';
 import { DeleteBillboardMessageCommand } from '../impls';
 
@@ -29,9 +32,10 @@ export class DeleteBillboardMessageHandler
       `Deleting billboard message: ${billboardMessageId} by ${deletedBy}`,
     );
 
+    const audit: DeleteBillboardMessageAuditDto = { deletedBy, deletedAt };
     const outcome = await this.billboardMessagesRepository.deleteBillboardMessage(
       billboardMessageId,
-      { deletedBy, deletedAt },
+      audit,
     );
 
     return {
@@ -39,6 +43,7 @@ export class DeleteBillboardMessageHandler
         id: billboardMessageId,
         removed: outcome.removed,
         fullyDeleted: outcome.fullyDeleted,
+        reason: outcome.reason,
       },
     };
   }

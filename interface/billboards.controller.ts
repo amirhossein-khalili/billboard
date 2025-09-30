@@ -33,10 +33,6 @@ import {
 } from '../domain/dtos';
 import 'multer';
 
-/**
- * @class BillboardController
- * @description Handles HTTP requests for managing billboards.
- */
 @ApiTags('billboards')
 @ApiBearerAuth()
 @Controller('/api/v1/billboards')
@@ -47,16 +43,6 @@ export class BillboardController extends BaseController {
     super();
   }
 
-  /**
-   * @method getBillboardMessages
-   * @description Retrieves a list of billboard_messages for the authenticated user's organization.
-   * @param {GetAllBillboardMessagesDto} data - DTO for getting all billboard_messages.
-   * @param {any} headers - Request headers.
-   * @param {any} req - The request object.
-   * @returns {Promise<GetBillboardMessagesResponseDto>} A promise that resolves
-   * to the billboard_messages
-   * response.
-   */
   @Get('/organization/:organizationId/messages')
   @RpcQuery('billboards', 'billboards', 'get_billboards_messages')
   @ApiOkResponse({
@@ -75,16 +61,6 @@ export class BillboardController extends BaseController {
     );
   }
 
-  /**
-   * @method importBillboardMessages
-   * @description Imports billboard_messages from an Excel file. The file should
-   * have columns for organization ID (use '*' for all organizations) and message.
-   * @param {Express.Multer.File} file - The uploaded Excel file.
-   * @param {any} headers - Request headers.
-   * @param {any} req - The request object.
-   * @returns {Promise<any>} The result of the import operation.
-   * @throws {BadRequestException} If no file is provided.
-   */
   @Post('/messages/import')
   @UseInterceptors(FileInterceptor('file'))
   @ApiConsumes('multipart/form-data')
@@ -118,14 +94,6 @@ export class BillboardController extends BaseController {
     return this.svc.importMessagesFromExcel(file.buffer, meta);
   }
 
-  /**
-   * @method deleteBillboardMessage
-   * @description Deletes a single billboard message by ID.
-   * @param {DeleteBillboardMessageDto} param - The billboard message to delete.
-   * @param {Record<string, string | string[]>} headers - Request headers.
-   * @param {ExpressRequest} req - The request object.
-   * @returns {Promise<any>} A promise that resolves to the delete outcome.
-   */
   @Delete('/messages/:billboardMessageId')
   async deleteBillboardMessage(
   @Param() param: DeleteBillboardMessageDto,

@@ -3,20 +3,7 @@ import { BILLBOARD_WILDCARD_ORGANIZATION_ID } from '../../domain/constants';
 import { ErrorReporter, ParsedBillboardMessageRow } from './types';
 import { XlsxTableParser } from './xlsx-table-parser';
 
-/**
- * @class BillboardMessagesXlsxParser
- * @description A concrete implementation of `XlsxTableParser` for parsing billboard
- * data from an Excel file.
- */
 export class BillboardMessagesXlsxParser extends XlsxTableParser<ParsedBillboardMessageRow> {
-  /**
-   * @protected
-   * @method validateHeader
-   * @description Validates the header row of the billboard Excel sheet.
-   * @param {string[]} header - The header row to validate.
-   * @returns {string[]} An array of error messages, or an empty array if the header is valid.
-   */
-  // eslint-disable-next-line class-methods-use-this
   protected validateHeader(header: string[]): string[] {
     const errors: string[] = [];
 
@@ -33,17 +20,6 @@ export class BillboardMessagesXlsxParser extends XlsxTableParser<ParsedBillboard
     return errors;
   }
 
-  /**
-   * @protected
-   * @method mapRow
-   * @description Maps a single row from the Excel sheet to a `ParsedBillboardMessageRow` object.
-   * @param {string[]} cells - The cells of the row.
-   * @param {number} rowNumber - The row number in the worksheet.
-   * @param {string[]} _header - The header row (unused).
-   * @param {ErrorReporter} addError - A function to report errors for the current row.
-   * @returns {ParsedBillboardMessageRow | null} The mapped object, or null if the row is invalid.
-   */
-  // eslint-disable-next-line class-methods-use-this
   protected mapRow(
     cells: string[],
     rowNumber: number,
